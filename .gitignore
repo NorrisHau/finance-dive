@@ -4,6 +4,7 @@ node_modules/
 # Astro output
 dist/
 .astro/
+.wrangler/
 
 # Logs
 npm-debug.log*
