@@ -12,7 +12,150 @@ tags:
 
 *目的：打破“投资就是投机”或“投资很难”的固有印象，建立长期主义视角。*
 
-1.  **货币的真相**：通货膨胀是如何悄悄偷走你的钱的？（购买力视角）
-2.  **穷人与富人的区别**：资产（钱生钱） vs. 负债（钱生烟）。
-3.  **世界第八大奇迹**：复利的力量（时间 + 收益率 + 本金）。
-4.  **投资的终极目标**：不是一夜暴富，而是实现“财务自由”或“选择自由”。
+### 1. 货币的真相：隐形的财富小偷
+
+我们从小被教育的观念是“存钱就是硬道理”。但这忽略了一个隐形的系统——**通货膨胀**。通胀意味着货币购买力在逐年下降。如果你的财富增长速度跑不过印钞机的速度（或者说CPI），你的实际购买力就是在无形中缩水的。
+
+通胀就像一个悄无声息的小偷，慢慢偷走你的劳动果实。投资的第一要义，就是保卫你的购买力！下面这幅图展示了在每年 3% 和 5% 的通胀率下，100万人民币购买力在未来30年内的缩水情况。
+
+<div style="position: relative; height: auto; width: 100%; margin: 2rem 0;">
+  <canvas id="inflationChart"></canvas>
+</div>
+
+### 2. 穷人与富人的区别：资产与负债
+
+罗伯特·清崎在《富爸爸穷爸爸》里提出了一个核心概念：**富人不断买入资产，穷人不断买入负债**。
+
+- **资产（现金流入）**：能把钱放进你口袋里的东西，比如收租的房产、连续派息的优质股票、提供稳定现金流的债券等。
+- **负债（现金流出）**：把钱从你口袋里不停掏去的东西，比如需要昂贵保养费用的豪车、不断贬值的奢侈品等。
+
+投资从某个角度看，就是不断买入那些能“为你工作”的机器。
+
+### 3. 世界第八大奇迹：复利的力量
+
+爱因斯坦曾说：“复利是世界第八大奇迹，懂它的人在这个过程中赚钱，不懂的人付出代价。”
+
+复利的公式是：**终值 = 本金 × (1 + 收益率)^时间**。
+
+在这三个变量中，最容易被低估的是**时间**。哪怕只有每年百分之几的稳定收益，在时间的催化下，后期也会产生指数级别的爆发。所以，投资越早开始越有利！
+
+下面这幅图比较了本金10万元，在每年 0%（放在床底）、3%（跑赢银行定期）和 8%（长期稳健投资水平）收益率下，复利长跑30年的惊人差距：
+
+<div style="position: relative; height: auto; width: 100%; margin: 2rem 0;">
+  <canvas id="compoundChart"></canvas>
+</div>
+
+### 4. 投资的终极目标：买回你的财务选择权
+
+我们投资不是为了去和别人攀比一夜暴富，而是为了获得“被动收入”，最终实现**财务自由**——即你的被动收入能够稳定地覆盖你的日常支出。当达到这个临界点时，你就拥有了对时间最大的掌控权，拥有了对不喜欢的工作说“不”的底气和自由选择生活的权力。
+
+---
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+  document.addEventListener("DOMContentLoaded", function() {
+    // 渲染图表1：通货膨胀对购买力的影响
+    const ctxInflation = document.getElementById('inflationChart');
+    if(ctxInflation) {
+      const years = Array.from({length: 31}, (_, i) => i); // 0到30年
+      const inflation3 = years.map(y => 100 * Math.pow(1 - 0.03, y));
+      const inflation5 = years.map(y => 100 * Math.pow(1 - 0.05, y));
+
+      new Chart(ctxInflation, {
+        type: 'line',
+        data: {
+          labels: years.map(y => '第 ' + y + ' 年'),
+          datasets: [
+            {
+              label: '3% 通胀下购买力 (万)',
+              data: inflation3,
+              borderColor: 'rgba(255, 99, 132, 1)',
+              backgroundColor: 'rgba(255, 99, 132, 0.2)',
+              fill: true,
+              tension: 0.4
+            },
+            {
+              label: '5% 通胀下购买力 (万)',
+              data: inflation5,
+              borderColor: 'rgba(54, 162, 235, 1)',
+              backgroundColor: 'rgba(54, 162, 235, 0.2)',
+              fill: true,
+              tension: 0.4
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          plugins: {
+            title: {
+              display: true,
+              text: '100万初始资金购买力变化趋势 (折线图)'
+            }
+          },
+          scales: {
+            y: {
+              beginAtZero: true,
+              title: { display: true, text: '实际购买力 (折合万)' }
+            },
+            x: {
+              title: { display: true, text: '时间 (年)' }
+            }
+          }
+        }
+      });
+    }
+
+    // 渲染图表2：复利效应
+    const ctxCompound = document.getElementById('compoundChart');
+    if(ctxCompound) {
+      const years = Array.from({length: 31}, (_, i) => i);
+      const rate0 = years.map(() => 10); // 0% 收益
+      const rate3 = years.map(y => 10 * Math.pow(1 + 0.03, y)); // 3% 收益
+      const rate8 = years.map(y => 10 * Math.pow(1 + 0.08, y)); // 8% 收益
+
+      new Chart(ctxCompound, {
+        type: 'line',
+        data: {
+          labels: years.map(y => '第 ' + y + ' 年'),
+          datasets: [
+            {
+              label: '0% 收益 (藏床底)',
+              data: rate0,
+              borderColor: 'rgba(201, 203, 207, 1)',
+              tension: 0.4
+            },
+            {
+              label: '3% 年化收益',
+              data: rate3,
+              borderColor: 'rgba(255, 205, 86, 1)',
+              tension: 0.4
+            },
+            {
+              label: '8% 年化收益 (复利奇迹)',
+              data: rate8,
+              borderColor: 'rgba(75, 192, 192, 1)',
+              tension: 0.4
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          plugins: {
+            title: {
+              display: true,
+              text: '10万元投资在不同收益下的复利增长曲线'
+            }
+          },
+          scales: {
+            y: {
+              title: { display: true, text: '总资产 (万)' }
+            },
+            x: {
+              title: { display: true, text: '时间 (年)' }
+            }
+          }
+        }
+      });
+    }
+  });
+</script>
