@@ -1,0 +1,145 @@
+---
+// src/layouts/chapter-1.astro
+// 第一章交互图表逻辑：根据用户输入实时计算并绘制30年资产曲线。
+---
+
+<script is:inline data-astro-rerun>
+  (async function () {
+    function loadChartJs() {
+      if (window.Chart) return Promise.resolve(window.Chart);
+
+      return new Promise((resolve, reject) => {
+        const existing = document.querySelector('script[data-chartjs-loader="true"]');
+        if (existing) {
+          existing.addEventListener("load", () => resolve(window.Chart), { once: true });
+          existing.addEventListener("error", () => reject(new Error("Chart.js load failed")), {
+            once: true,
+          });
+          return;
+        }
+
+        const script = document.createElement("script");
+        script.src = "https://cdn.jsdelivr.net/npm/chart.js@4.4.8/dist/chart.umd.min.js";
+        script.async = true;
+        script.dataset.chartjsLoader = "true";
+        script.onload = () => resolve(window.Chart);
+        script.onerror = () => reject(new Error("Chart.js load failed"));
+        document.head.appendChild(script);
+      });
+    }
+
+    const Chart = await loadChartJs().catch(() => null);
+    if (!Chart) return;
+
+    const canvas = document.getElementById("userCompoundChart");
+    if (!canvas) return;
+
+    const depositEl = document.getElementById("userDeposit");
+    const incomeEl = document.getElementById("userIncome");
+    const rigidEl = document.getElementById("userRigid");
+    const elasticEl = document.getElementById("userElastic");
+
+    if (!depositEl || !incomeEl || !rigidEl || !elasticEl) return;
+
+    const investableText = document.getElementById("userInvestable");
+    const emergencyText = document.getElementById("userEmergency");
+    const startPrincipalText = document.getElementById("userStartPrincipal");
+
+    const nf = new Intl.NumberFormat("zh-CN");
+    const currencyFormatter = value => `¥${nf.format(Math.round(Number(value) || 0))}`;
+
+    let chartInstance = null;
+
+    function safeNumber(value) {
+      const n = Number(value);
+      return Number.isFinite(n) ? Math.max(0, n) : 0;
+    }
+
+    function renderUserChart() {
+      const deposit = safeNumber(depositEl.value);
+      const income = safeNumber(incomeEl.value);
+      const rigid = safeNumber(rigidEl.value);
+      const elastic = safeNumber(elasticEl.value);
+
+      const investableMonthly = Math.max(0, income - rigid - elastic);
+      const investableYearly = investableMonthly * 12;
+
+      const emergencyFundGoal = rigid * 6;
+      const emergencyFundActual = Math.min(deposit, emergencyFundGoal);
+      const startPrincipal = Math.max(0, deposit - emergencyFundActual);
+
+      if (investableText) investableText.textContent = nf.format(investableMonthly);
+      if (emergencyText) emergencyText.textContent = nf.format(emergencyFundActual);
+      if (startPrincipalText) startPrincipalText.textContent = nf.format(startPrincipal);
+
+      const rate = 0.05;
+      const years = Array.from({ length: 31 }, (_, i) => i);
+
+      const projection = years.map(year => {
+        if (year === 0) return startPrincipal + emergencyFundActual;
+        const principalGrowth = startPrincipal * Math.pow(1 + rate, year);
+        const contributionGrowth = investableYearly * ((Math.pow(1 + rate, year) - 1) / rate);
+        return principalGrowth + contributionGrowth + emergencyFundActual;
+      });
+
+      const pureDeposit = years.map(year =>
+        startPrincipal + emergencyFundActual + investableYearly * year
+      );
+
+      if (chartInstance) chartInstance.destroy();
+
+      chartInstance = new Chart(canvas, {
+        type: "line",
+        data: {
+          labels: years.map(y => `第${y}年`),
+          datasets: [
+            {
+              label: "投资总资产（5%年化假设）",
+              data: projection,
+              borderColor: "#10b981",
+              backgroundColor: "rgba(16, 185, 129, 0.14)",
+              fill: true,
+              tension: 0.35,
+            },
+            {
+              label: "只存不投（现金累计）",
+              data: pureDeposit,
+              borderColor: "#e76f51",
+              borderDash: [6, 4],
+              fill: false,
+              tension: 0.35,
+            },
+          ],
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          interaction: { mode: "index", intersect: false },
+          plugins: {
+            title: { display: true, text: "你的30年资产变化模拟" },
+            tooltip: {
+              callbacks: {
+                label: context => `${context.dataset.label}：${currencyFormatter(context.parsed.y)}`,
+              },
+            },
+          },
+          scales: {
+            y: {
+              title: { display: true, text: "总资产（元）" },
+              ticks: { callback: value => currencyFormatter(value) },
+            },
+            x: {
+              title: { display: true, text: "时间" },
+            },
+          },
+        },
+      });
+    }
+
+    [depositEl, incomeEl, rigidEl, elasticEl].forEach(el => {
+      el.addEventListener("input", renderUserChart);
+    });
+
+    renderUserChart();
+  })();
+</script>

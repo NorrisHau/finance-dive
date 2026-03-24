@@ -102,6 +102,11 @@ html[data-theme="dark"] {
     @apply my-8 rounded-2xl border border-border bg-background p-4 sm:p-6;
   }
 
+  .chart-card canvas {
+    @apply w-full;
+    min-height: 320px;
+  }
+
   .finance-input-panel {
     @apply grid gap-4 rounded-2xl border border-border bg-background p-4 sm:grid-cols-3 sm:p-6;
   }

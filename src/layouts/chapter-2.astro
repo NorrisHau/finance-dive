@@ -1,0 +1,278 @@
+---
+// src/layouts/chapter-2.astro
+// 第二章交互图表逻辑：
+// 1) 不可能三角（资产预设 + 自定义滑块）
+// 2) 量化 vs 手动时间轴（反应时延 + 观察窗口）
+---
+
+<script is:inline data-astro-rerun>
+  (async function () {
+    function loadChartJs() {
+      if (window.Chart) return Promise.resolve(window.Chart);
+
+      return new Promise((resolve, reject) => {
+        const existing = document.querySelector('script[data-chartjs-loader="true"]');
+        if (existing) {
+          existing.addEventListener("load", () => resolve(window.Chart), { once: true });
+          existing.addEventListener("error", () => reject(new Error("Chart.js load failed")), {
+            once: true,
+          });
+          return;
+        }
+
+        const script = document.createElement("script");
+        script.src = "https://cdn.jsdelivr.net/npm/chart.js@4.4.8/dist/chart.umd.min.js";
+        script.async = true;
+        script.dataset.chartjsLoader = "true";
+        script.onload = () => resolve(window.Chart);
+        script.onerror = () => reject(new Error("Chart.js load failed"));
+        document.head.appendChild(script);
+      });
+    }
+
+    const Chart = await loadChartJs().catch(() => null);
+    if (!Chart) return;
+
+    function initTriangleChart() {
+      const canvas = document.getElementById("triangleChart");
+      const presetSelect = document.getElementById("assetPresetSelect");
+      const safetyInput = document.getElementById("safetyInput");
+      const liquidityInput = document.getElementById("liquidityInput");
+      const returnInput = document.getElementById("returnInput");
+      const safetyVal = document.getElementById("safetyVal");
+      const liquidityVal = document.getElementById("liquidityVal");
+      const returnVal = document.getElementById("returnVal");
+
+      if (
+        !canvas ||
+        !presetSelect ||
+        !safetyInput ||
+        !liquidityInput ||
+        !returnInput ||
+        !safetyVal ||
+        !liquidityVal ||
+        !returnVal
+      ) {
+        return;
+      }
+
+      const presets = {
+        money: [9, 9, 3],
+        bond: [7, 6, 5],
+        equity: [4, 6, 8],
+        commodity: [5, 5, 7],
+      };
+
+      function setInputValues(values) {
+        const [s, l, r] = values;
+        safetyInput.value = String(s);
+        liquidityInput.value = String(l);
+        returnInput.value = String(r);
+      }
+
+      function readValues() {
+        return [
+          Number(safetyInput.value),
+          Number(liquidityInput.value),
+          Number(returnInput.value),
+        ];
+      }
+
+      function refreshValueText([s, l, r]) {
+        safetyVal.textContent = String(s);
+        liquidityVal.textContent = String(l);
+        returnVal.textContent = String(r);
+      }
+
+      const triangleChart = new Chart(canvas, {
+        type: "radar",
+        data: {
+          labels: ["安全性", "流动性", "收益潜力"],
+          datasets: [
+            {
+              label: "当前资产画像",
+              data: presets.money,
+              borderColor: "#0ea5e9",
+              backgroundColor: "rgba(14, 165, 233, 0.18)",
+              pointBackgroundColor: "#0284c7",
+              pointBorderColor: "#ffffff",
+              pointRadius: 4,
+            },
+          ],
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            title: {
+              display: true,
+              text: "不可能三角示意：同一资产无法同时把三项都拉满",
+            },
+            tooltip: {
+              callbacks: {
+                label: context => `${context.label}: ${context.parsed.r}/10`,
+              },
+            },
+          },
+          scales: {
+            r: {
+              min: 0,
+              max: 10,
+              ticks: { stepSize: 2 },
+              pointLabels: { font: { size: 12 } },
+            },
+          },
+        },
+      });
+
+      function rerenderTriangle() {
+        const values = readValues();
+        refreshValueText(values);
+        triangleChart.data.datasets[0].data = values;
+        triangleChart.update();
+      }
+
+      presetSelect.addEventListener("change", () => {
+        const key = presetSelect.value;
+        if (key !== "custom" && presets[key]) {
+          setInputValues(presets[key]);
+        }
+        rerenderTriangle();
+      });
+
+      [safetyInput, liquidityInput, returnInput].forEach(input => {
+        input.addEventListener("input", () => {
+          presetSelect.value = "custom";
+          rerenderTriangle();
+        });
+      });
+
+      setInputValues(presets.money);
+      rerenderTriangle();
+    }
+
+    function initQuantTimelineChart() {
+      const canvas = document.getElementById("quantTimelineChart");
+      const manualLatencyInput = document.getElementById("manualLatencyInput");
+      const windowInput = document.getElementById("windowInput");
+      const manualLatencyVal = document.getElementById("manualLatencyVal");
+      const windowVal = document.getElementById("windowVal");
+
+      if (
+        !canvas ||
+        !manualLatencyInput ||
+        !windowInput ||
+        !manualLatencyVal ||
+        !windowVal
+      ) {
+        return;
+      }
+
+      function generateTimeline(windowMs) {
+        const points = [];
+        const step = Math.max(50, Math.round(windowMs / 10));
+        for (let t = 0; t <= windowMs; t += step) {
+          points.push(t);
+        }
+        if (points[points.length - 1] !== windowMs) points.push(windowMs);
+        return points;
+      }
+
+      function quantActionsAt(t) {
+        if (t < 8) return 0;
+        if (t < 20) return 2;
+        if (t < 50) return 5;
+        if (t < 100) return 8;
+        if (t < 300) return 12;
+        if (t < 600) return 15;
+        return 18;
+      }
+
+      function manualActionsAt(t, latency) {
+        if (t < latency) return 0;
+        if (t < latency + 180) return 1;
+        if (t < latency + 450) return 2;
+        if (t < latency + 900) return 3;
+        return 4;
+      }
+
+      function buildSeries(windowMs, latency) {
+        const timeline = generateTimeline(windowMs);
+        return {
+          labels: timeline.map(t => `${t}ms`),
+          quant: timeline.map(quantActionsAt),
+          manual: timeline.map(t => manualActionsAt(t, latency)),
+        };
+      }
+
+      const initialWindow = Number(windowInput.value);
+      const initialLatency = Number(manualLatencyInput.value);
+      const initialSeries = buildSeries(initialWindow, initialLatency);
+
+      const timelineChart = new Chart(canvas, {
+        type: "line",
+        data: {
+          labels: initialSeries.labels,
+          datasets: [
+            {
+              label: "量化系统累计动作数（示意）",
+              data: initialSeries.quant,
+              borderColor: "#2563eb",
+              backgroundColor: "rgba(37, 99, 235, 0.15)",
+              fill: true,
+              tension: 0.25,
+            },
+            {
+              label: "手动交易累计动作数（示意）",
+              data: initialSeries.manual,
+              borderColor: "#f97316",
+              backgroundColor: "rgba(249, 115, 22, 0.1)",
+              fill: true,
+              tension: 0.25,
+            },
+          ],
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            title: {
+              display: true,
+              text: "信号触发后的执行节奏对比：速度差会形成结构性差距",
+            },
+          },
+          scales: {
+            y: {
+              beginAtZero: true,
+              suggestedMax: 20,
+              title: { display: true, text: "累计动作数" },
+            },
+            x: {
+              title: { display: true, text: "触发后的时间" },
+            },
+          },
+        },
+      });
+
+      function rerenderTimeline() {
+        const windowMs = Number(windowInput.value);
+        const latency = Number(manualLatencyInput.value);
+        manualLatencyVal.textContent = String(latency);
+        windowVal.textContent = String(windowMs);
+
+        const series = buildSeries(windowMs, latency);
+        timelineChart.data.labels = series.labels;
+        timelineChart.data.datasets[0].data = series.quant;
+        timelineChart.data.datasets[1].data = series.manual;
+        timelineChart.update();
+      }
+
+      manualLatencyInput.addEventListener("input", rerenderTimeline);
+      windowInput.addEventListener("input", rerenderTimeline);
+      rerenderTimeline();
+    }
+
+    initTriangleChart();
+    initQuantTimelineChart();
+  })();
+</script>
