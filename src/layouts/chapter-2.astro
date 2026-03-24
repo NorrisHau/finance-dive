@@ -1,9 +1,67 @@
 ---
 // src/layouts/chapter-2.astro
-// 第二章交互图表逻辑：
-// 1) 不可能三角（资产预设 + 自定义滑块）
-// 2) 量化 vs 手动时间轴（反应时延 + 观察窗口）
+// 第二章交互区：
+// 1) 不可能三角（多资产同图 + 图例置顶）
+// 2) 10 秒动画（量化执行 vs 散户观察）
+// 3) 风险地图（常见度 vs 破坏性）
 ---
+
+<section class="chapter-viz mt-4 space-y-4 border-t border-dashed border-skin-line pt-4">
+  <div class="chart-card">
+    <h3 class="mb-3 text-lg font-semibold">不可能三角：多资产同图对比</h3>
+    <p class="mb-4 text-sm text-foreground/70">图例在图上方，颜色仅用于区分资产，不代表好坏。</p>
+    <div class="triangle-legend" id="triangleLegend"></div>
+    <canvas id="triangleChart"></canvas>
+  </div>
+
+  <div class="quant-scene" id="quantScene">
+    <div class="quant-scene__head">
+      <p class="quant-scene__title">10 秒执行动画：量化与散户的动作差距</p>
+      <p class="quant-scene__subtitle" id="quantSceneCaption">第 0.0 秒：等待信号出现</p>
+    </div>
+
+    <div class="quant-axis">
+      <span>0s</span>
+      <span>2s</span>
+      <span>4s</span>
+      <span>6s</span>
+      <span>8s</span>
+      <span>10s</span>
+    </div>
+
+    <div class="quant-lane-wrap">
+      <div class="quant-playhead" id="quantPlayhead"></div>
+
+      <div class="quant-lane">
+        <div class="quant-lane__label">量化系统</div>
+        <div class="quant-track">
+          <div class="quant-window" data-start="1" data-end="3">信号窗口</div>
+          <div class="quant-event" data-start="1.2" data-end="1.7">买入#1</div>
+          <div class="quant-event" data-start="2.4" data-end="2.9">卖出#1</div>
+          <div class="quant-event" data-start="4.1" data-end="4.5">买入#2</div>
+          <div class="quant-event" data-start="4.6" data-end="5.0">卖出#2</div>
+          <div class="quant-event" data-start="8.2" data-end="8.8">买入#3</div>
+          <div class="quant-event" data-start="9.1" data-end="9.8">卖出#3</div>
+        </div>
+      </div>
+
+      <div class="quant-lane">
+        <div class="quant-lane__label">散户</div>
+        <div class="quant-track">
+          <div class="quant-idle">观察行情中...</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="chart-card">
+    <h3 class="mb-3 text-lg font-semibold">风险地图：常见度与破坏性</h3>
+    <p class="mb-4 text-sm text-foreground/70">
+      越靠右越常见，越靠上代表一旦发生影响越大。用于确定优先防守顺序。
+    </p>
+    <canvas id="riskMatrixChart"></canvas>
+  </div>
+</section>
 
 <script is:inline data-astro-rerun>
   (async function () {
@@ -30,249 +88,201 @@
       });
     }
 
-    const Chart = await loadChartJs().catch(() => null);
-    if (!Chart) return;
-
-    function initTriangleChart() {
+    async function initTriangleChart() {
       const canvas = document.getElementById("triangleChart");
-      const presetSelect = document.getElementById("assetPresetSelect");
-      const safetyInput = document.getElementById("safetyInput");
-      const liquidityInput = document.getElementById("liquidityInput");
-      const returnInput = document.getElementById("returnInput");
-      const safetyVal = document.getElementById("safetyVal");
-      const liquidityVal = document.getElementById("liquidityVal");
-      const returnVal = document.getElementById("returnVal");
+      const legend = document.getElementById("triangleLegend");
+      if (!canvas || !legend || canvas.dataset.rendered === "true") return;
 
-      if (
-        !canvas ||
-        !presetSelect ||
-        !safetyInput ||
-        !liquidityInput ||
-        !returnInput ||
-        !safetyVal ||
-        !liquidityVal ||
-        !returnVal
-      ) {
-        return;
-      }
+      const assets = [
+        { name: "货币基金 / 现金管理", values: [9, 9, 3], color: "#3b82f6" },
+        { name: "中短债基金", values: [8, 7, 4], color: "#10b981" },
+        { name: "高股息 / 红利资产", values: [6, 6, 6], color: "#ea580c" },
+        { name: "宽基股票 ETF", values: [4, 6, 8], color: "#e11d48" },
+        { name: "黄金 / 商品 ETF", values: [5, 5, 7], color: "#ca8a04" },
+        { name: "私募 / 小众策略", values: [3, 2, 8], color: "#7c3aed" },
+      ];
 
-      const presets = {
-        money: [9, 9, 3],
-        bond: [7, 6, 5],
-        equity: [4, 6, 8],
-        commodity: [5, 5, 7],
-      };
+      legend.innerHTML = assets
+        .map(
+          item =>
+            `<span class="triangle-legend__item"><i style="background:${item.color}"></i>${item.name}</span>`
+        )
+        .join("");
 
-      function setInputValues(values) {
-        const [s, l, r] = values;
-        safetyInput.value = String(s);
-        liquidityInput.value = String(l);
-        returnInput.value = String(r);
-      }
+      const Chart = await loadChartJs().catch(() => null);
+      if (!Chart) return;
 
-      function readValues() {
-        return [
-          Number(safetyInput.value),
-          Number(liquidityInput.value),
-          Number(returnInput.value),
-        ];
-      }
-
-      function refreshValueText([s, l, r]) {
-        safetyVal.textContent = String(s);
-        liquidityVal.textContent = String(l);
-        returnVal.textContent = String(r);
-      }
-
-      const triangleChart = new Chart(canvas, {
+      new Chart(canvas, {
         type: "radar",
         data: {
           labels: ["安全性", "流动性", "收益潜力"],
-          datasets: [
-            {
-              label: "当前资产画像",
-              data: presets.money,
-              borderColor: "#0ea5e9",
-              backgroundColor: "rgba(14, 165, 233, 0.18)",
-              pointBackgroundColor: "#0284c7",
-              pointBorderColor: "#ffffff",
-              pointRadius: 4,
-            },
-          ],
+          datasets: assets.map(item => ({
+            label: item.name,
+            data: item.values,
+            borderColor: item.color,
+            backgroundColor: `${item.color}1f`,
+            pointRadius: 2.5,
+            borderWidth: 2,
+          })),
         },
         options: {
+          animation: false,
           responsive: true,
           maintainAspectRatio: false,
+          interaction: { mode: "nearest", intersect: false },
           plugins: {
             title: {
               display: true,
-              text: "不可能三角示意：同一资产无法同时把三项都拉满",
+              text: "常见资产在三角三端的取舍分布",
             },
-            tooltip: {
-              callbacks: {
-                label: context => `${context.label}: ${context.parsed.r}/10`,
-              },
-            },
+            legend: { display: false },
           },
           scales: {
             r: {
               min: 0,
               max: 10,
-              ticks: { stepSize: 2 },
+              ticks: { stepSize: 2, backdropColor: "transparent" },
               pointLabels: { font: { size: 12 } },
+              grid: { color: "rgba(148, 163, 184, 0.28)" },
+              angleLines: { color: "rgba(148, 163, 184, 0.32)" },
             },
           },
         },
       });
 
-      function rerenderTriangle() {
-        const values = readValues();
-        refreshValueText(values);
-        triangleChart.data.datasets[0].data = values;
-        triangleChart.update();
-      }
-
-      presetSelect.addEventListener("change", () => {
-        const key = presetSelect.value;
-        if (key !== "custom" && presets[key]) {
-          setInputValues(presets[key]);
-        }
-        rerenderTriangle();
-      });
-
-      [safetyInput, liquidityInput, returnInput].forEach(input => {
-        input.addEventListener("input", () => {
-          presetSelect.value = "custom";
-          rerenderTriangle();
-        });
-      });
-
-      setInputValues(presets.money);
-      rerenderTriangle();
+      canvas.dataset.rendered = "true";
     }
 
-    function initQuantTimelineChart() {
-      const canvas = document.getElementById("quantTimelineChart");
-      const manualLatencyInput = document.getElementById("manualLatencyInput");
-      const windowInput = document.getElementById("windowInput");
-      const manualLatencyVal = document.getElementById("manualLatencyVal");
-      const windowVal = document.getElementById("windowVal");
+    function initQuantScene() {
+      const root = document.getElementById("quantScene");
+      const playhead = document.getElementById("quantPlayhead");
+      const caption = document.getElementById("quantSceneCaption");
+      if (!root || !playhead || !caption || root.dataset.bound === "true") return;
 
-      if (
-        !canvas ||
-        !manualLatencyInput ||
-        !windowInput ||
-        !manualLatencyVal ||
-        !windowVal
-      ) {
-        return;
+      if (window.__chapter2QuantTimer) {
+        window.clearInterval(window.__chapter2QuantTimer);
+        window.__chapter2QuantTimer = null;
       }
 
-      function generateTimeline(windowMs) {
-        const points = [];
-        const step = Math.max(50, Math.round(windowMs / 10));
-        for (let t = 0; t <= windowMs; t += step) {
-          points.push(t);
+      const duration = 10;
+      const stepMs = 100;
+      const signal = root.querySelector(".quant-window");
+      const events = Array.from(root.querySelectorAll(".quant-event")).map(el => ({
+        el,
+        start: Number(el.dataset.start || 0),
+        end: Number(el.dataset.end || 0),
+        text: el.textContent?.trim() || "动作",
+      }));
+
+      function placeByTime(element, start, end) {
+        const left = Math.max(0, Math.min(100, (start / duration) * 100));
+        const width = Math.max(1.2, ((end - start) / duration) * 100);
+        element.style.left = `${left}%`;
+        element.style.width = `${width}%`;
+      }
+
+      if (signal) {
+        placeByTime(signal, Number(signal.dataset.start || 1), Number(signal.dataset.end || 3));
+      }
+      events.forEach(item => placeByTime(item.el, item.start, item.end));
+
+      const startedAt = Date.now();
+      const tick = () => {
+        if (!document.body.contains(root)) {
+          if (window.__chapter2QuantTimer) {
+            window.clearInterval(window.__chapter2QuantTimer);
+            window.__chapter2QuantTimer = null;
+          }
+          return;
         }
-        if (points[points.length - 1] !== windowMs) points.push(windowMs);
-        return points;
-      }
 
-      function quantActionsAt(t) {
-        if (t < 8) return 0;
-        if (t < 20) return 2;
-        if (t < 50) return 5;
-        if (t < 100) return 8;
-        if (t < 300) return 12;
-        if (t < 600) return 15;
-        return 18;
-      }
+        const elapsed = ((Date.now() - startedAt) / 1000) % duration;
+        const progress = elapsed / duration;
+        playhead.style.left = `${(progress * 100).toFixed(2)}%`;
 
-      function manualActionsAt(t, latency) {
-        if (t < latency) return 0;
-        if (t < latency + 180) return 1;
-        if (t < latency + 450) return 2;
-        if (t < latency + 900) return 3;
-        return 4;
-      }
+        let text = `第 ${elapsed.toFixed(1)} 秒：散户观察行情`;
+        if (elapsed >= 1 && elapsed <= 3) {
+          text = `第 ${elapsed.toFixed(1)} 秒：信号触发，量化开始执行`;
+        }
 
-      function buildSeries(windowMs, latency) {
-        const timeline = generateTimeline(windowMs);
-        return {
-          labels: timeline.map(t => `${t}ms`),
-          quant: timeline.map(quantActionsAt),
-          manual: timeline.map(t => manualActionsAt(t, latency)),
-        };
-      }
+        events.forEach(item => {
+          const active = elapsed >= item.start && elapsed <= item.end;
+          item.el.classList.toggle("is-active", active);
+          if (active) text = `第 ${elapsed.toFixed(1)} 秒：量化执行 ${item.text}`;
+        });
 
-      const initialWindow = Number(windowInput.value);
-      const initialLatency = Number(manualLatencyInput.value);
-      const initialSeries = buildSeries(initialWindow, initialLatency);
+        caption.textContent = text;
+      };
 
-      const timelineChart = new Chart(canvas, {
-        type: "line",
+      tick();
+      window.__chapter2QuantTimer = window.setInterval(tick, stepMs);
+      root.dataset.bound = "true";
+    }
+
+    async function initRiskMatrixChart() {
+      const canvas = document.getElementById("riskMatrixChart");
+      if (!canvas || canvas.dataset.rendered === "true") return;
+
+      const Chart = await loadChartJs().catch(() => null);
+      if (!Chart) return;
+
+      const risks = [
+        { x: 8, y: 9, r: 11, name: "行为风险", color: "#ef4444" },
+        { x: 7, y: 8, r: 10, name: "市场风险", color: "#f97316" },
+        { x: 6, y: 7, r: 9, name: "流动性风险", color: "#eab308" },
+        { x: 4, y: 8, r: 8, name: "杠杆风险", color: "#8b5cf6" },
+        { x: 3, y: 6, r: 7, name: "信用风险", color: "#3b82f6" },
+      ];
+
+      new Chart(canvas, {
+        type: "bubble",
         data: {
-          labels: initialSeries.labels,
-          datasets: [
-            {
-              label: "量化系统累计动作数（示意）",
-              data: initialSeries.quant,
-              borderColor: "#2563eb",
-              backgroundColor: "rgba(37, 99, 235, 0.15)",
-              fill: true,
-              tension: 0.25,
-            },
-            {
-              label: "手动交易累计动作数（示意）",
-              data: initialSeries.manual,
-              borderColor: "#f97316",
-              backgroundColor: "rgba(249, 115, 22, 0.1)",
-              fill: true,
-              tension: 0.25,
-            },
-          ],
+          datasets: risks.map(item => ({
+            label: item.name,
+            data: [{ x: item.x, y: item.y, r: item.r }],
+            backgroundColor: `${item.color}aa`,
+            borderColor: item.color,
+            borderWidth: 1.5,
+            hoverBorderWidth: 2,
+          })),
         },
         options: {
+          animation: false,
           responsive: true,
           maintainAspectRatio: false,
           plugins: {
-            title: {
-              display: true,
-              text: "信号触发后的执行节奏对比：速度差会形成结构性差距",
+            legend: { position: "top" },
+            tooltip: {
+              callbacks: {
+                label: ctx => {
+                  const p = ctx.raw;
+                  return `${ctx.dataset.label}: 常见度 ${p.x}/10, 破坏性 ${p.y}/10`;
+                },
+              },
             },
           },
           scales: {
-            y: {
-              beginAtZero: true,
-              suggestedMax: 20,
-              title: { display: true, text: "累计动作数" },
-            },
             x: {
-              title: { display: true, text: "触发后的时间" },
+              min: 0,
+              max: 10,
+              title: { display: true, text: "常见度" },
+              grid: { color: "rgba(148, 163, 184, 0.25)" },
+            },
+            y: {
+              min: 0,
+              max: 10,
+              title: { display: true, text: "破坏性" },
+              grid: { color: "rgba(148, 163, 184, 0.25)" },
             },
           },
         },
       });
 
-      function rerenderTimeline() {
-        const windowMs = Number(windowInput.value);
-        const latency = Number(manualLatencyInput.value);
-        manualLatencyVal.textContent = String(latency);
-        windowVal.textContent = String(windowMs);
-
-        const series = buildSeries(windowMs, latency);
-        timelineChart.data.labels = series.labels;
-        timelineChart.data.datasets[0].data = series.quant;
-        timelineChart.data.datasets[1].data = series.manual;
-        timelineChart.update();
-      }
-
-      manualLatencyInput.addEventListener("input", rerenderTimeline);
-      windowInput.addEventListener("input", rerenderTimeline);
-      rerenderTimeline();
+      canvas.dataset.rendered = "true";
     }
 
-    initTriangleChart();
-    initQuantTimelineChart();
+    await initTriangleChart();
+    initQuantScene();
+    await initRiskMatrixChart();
   })();
 </script>

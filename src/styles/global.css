@@ -107,6 +107,124 @@ html[data-theme="dark"] {
     min-height: 320px;
   }
 
+  .triangle-legend {
+    @apply mb-3 flex flex-wrap gap-2;
+  }
+
+  .triangle-legend__item {
+    @apply inline-flex items-center gap-2 rounded-full border border-border bg-background px-2.5 py-1 text-xs text-foreground/80;
+  }
+
+  .triangle-legend__item i {
+    @apply inline-block h-2.5 w-2.5 rounded-full;
+  }
+
+  .quant-scene {
+    @apply my-4 overflow-hidden rounded-2xl border border-border bg-background p-3 sm:p-4;
+  }
+
+  .quant-scene__head {
+    @apply mb-2;
+  }
+
+  .quant-scene__title {
+    @apply text-base font-semibold sm:text-lg;
+  }
+
+  .quant-scene__subtitle {
+    @apply mt-1 text-sm text-foreground/70;
+  }
+
+  .quant-axis {
+    @apply mb-2 grid text-xs text-foreground/60;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+  }
+
+  .quant-axis span {
+    @apply text-center;
+  }
+
+  .quant-lane-wrap {
+    @apply relative rounded-xl border border-border bg-muted/25 p-2;
+  }
+
+  .quant-playhead {
+    @apply pointer-events-none absolute top-1.5 bottom-1.5 z-10 w-0.5 bg-accent/70;
+    left: 0%;
+    transition: left 120ms linear;
+  }
+
+  .quant-lane {
+    @apply mb-2 grid items-center gap-2;
+    grid-template-columns: 84px minmax(0, 1fr);
+  }
+
+  .quant-lane:last-child {
+    @apply mb-0;
+  }
+
+  .quant-lane__label {
+    @apply text-xs font-medium text-foreground/70 sm:text-sm;
+  }
+
+  .quant-track {
+    @apply relative h-10 min-w-0 overflow-hidden rounded-lg border border-border bg-background;
+  }
+
+  .quant-window {
+    @apply absolute top-1.5 h-7 rounded-md border border-amber-300 bg-amber-100/75 px-2 pt-0.5 text-[10px] text-amber-900;
+  }
+
+  .quant-event {
+    @apply absolute top-1.5 z-20 h-7 rounded-md border border-blue-200 bg-blue-100/85 px-2 pt-0.5 text-[10px] text-blue-900 opacity-55;
+    transition:
+      transform 180ms ease,
+      opacity 180ms ease,
+      box-shadow 180ms ease;
+    will-change: transform, opacity;
+  }
+
+  .quant-event.is-active {
+    @apply opacity-100;
+    transform: translateY(-1px) scale(1.02);
+    box-shadow: 0 0 0 1px rgba(59, 130, 246, 0.2), 0 0 16px rgba(59, 130, 246, 0.35);
+  }
+
+  .quant-idle {
+    @apply absolute top-1.5 left-2.5 h-7 rounded-md border border-zinc-300 bg-zinc-100 px-2.5 pt-0.5 text-[10px] text-zinc-700;
+    animation: human-idle 2.2s ease-in-out infinite;
+  }
+
+  .chapter-viz .chart-card {
+    @apply my-2 p-3 sm:p-4;
+  }
+
+  .chapter-viz .chart-card canvas#triangleChart,
+  .chapter-viz .chart-card canvas#riskMatrixChart {
+    min-height: 160px;
+    height: 160px;
+  }
+
+  @media (min-width: 640px) {
+    .chapter-viz .chart-card canvas#triangleChart,
+    .chapter-viz .chart-card canvas#riskMatrixChart {
+      min-height: 200px;
+      height: 200px;
+    }
+  }
+
+  @keyframes human-idle {
+    0% {
+      opacity: 0.45;
+    }
+    50% {
+      opacity: 0.95;
+    }
+    100% {
+      opacity: 0.45;
+    }
+  }
+
   .finance-input-panel {
     @apply grid gap-4 rounded-2xl border border-border bg-background p-4 sm:grid-cols-3 sm:p-6;
   }

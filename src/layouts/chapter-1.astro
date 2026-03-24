@@ -1,7 +1,43 @@
 ---
 // src/layouts/chapter-1.astro
-// 第一章交互图表逻辑：根据用户输入实时计算并绘制30年资产曲线。
+// 第一章图表：固定参数对比 + 末尾个人复利测算
 ---
+
+<div class="chapter-interactive-section mt-12 border-t border-dashed border-skin-line pt-8">
+  <h3 class="mb-3 text-xl font-bold">最后一节：按你的实际情况自算复利</h3>
+  <p class="mb-6 text-sm text-foreground/70">
+    输入你当前可投资本金、每月可持续投入、年化收益假设与投资年限，图表会实时展示未来资产曲线。
+  </p>
+
+  <div class="finance-input-panel" id="chapter1PersonalControls">
+    <label>
+      当前可投资本金（元）
+      <input id="personalPrincipalInput" type="number" min="0" step="1000" value="50000" />
+    </label>
+    <label>
+      每月新增投入（元）
+      <input id="personalMonthlyInput" type="number" min="0" step="100" value="4000" />
+    </label>
+    <label>
+      年化收益假设（%）
+      <input id="personalReturnInput" type="number" min="0" max="30" step="0.1" value="5" />
+    </label>
+    <label>
+      计划投资年限（年）
+      <input id="personalYearsInput" type="number" min="1" max="50" step="1" value="30" />
+    </label>
+  </div>
+
+  <div class="mt-5 rounded-lg border-l-4 border-skin-accent bg-skin-fill p-4 text-sm leading-7">
+    <div>期末预计总资产：<strong id="personalFutureValue">¥0</strong></div>
+    <div>累计投入本金：<strong id="personalTotalContribution">¥0</strong></div>
+    <div>复利带来的增值：<strong id="personalProfitValue">¥0</strong></div>
+  </div>
+
+  <div class="chart-card">
+    <canvas id="personalCompoundChart"></canvas>
+  </div>
+</div>
 
 <script is:inline data-astro-rerun>
   (async function () {
@@ -31,79 +67,197 @@
     const Chart = await loadChartJs().catch(() => null);
     if (!Chart) return;
 
-    const canvas = document.getElementById("userCompoundChart");
-    if (!canvas) return;
-
-    const depositEl = document.getElementById("userDeposit");
-    const incomeEl = document.getElementById("userIncome");
-    const rigidEl = document.getElementById("userRigid");
-    const elasticEl = document.getElementById("userElastic");
-
-    if (!depositEl || !incomeEl || !rigidEl || !elasticEl) return;
-
-    const investableText = document.getElementById("userInvestable");
-    const emergencyText = document.getElementById("userEmergency");
-    const startPrincipalText = document.getElementById("userStartPrincipal");
-
     const nf = new Intl.NumberFormat("zh-CN");
-    const currencyFormatter = value => `¥${nf.format(Math.round(Number(value) || 0))}`;
+    const toCurrency = value => `¥${nf.format(Math.round(Number(value) || 0))}`;
 
-    let chartInstance = null;
+    const initial = 50000;
+    const monthly = 4000;
+    const yearly = monthly * 12;
+    const years = Array.from({ length: 31 }, (_, i) => i);
 
-    function safeNumber(value) {
-      const n = Number(value);
-      return Number.isFinite(n) ? Math.max(0, n) : 0;
+    function destroyIfExists(canvas) {
+      const existing = Chart.getChart(canvas);
+      if (existing) existing.destroy();
     }
 
-    function renderUserChart() {
-      const deposit = safeNumber(depositEl.value);
-      const income = safeNumber(incomeEl.value);
-      const rigid = safeNumber(rigidEl.value);
-      const elastic = safeNumber(elasticEl.value);
+    function growthSeries(rate) {
+      return years.map(y => {
+        if (y === 0) return initial;
+        const p = initial * Math.pow(1 + rate, y);
+        const c = yearly * ((Math.pow(1 + rate, y) - 1) / rate);
+        return p + c;
+      });
+    }
 
-      const investableMonthly = Math.max(0, income - rigid - elastic);
-      const investableYearly = investableMonthly * 12;
+    function renderInflationChart() {
+      const canvas = document.getElementById("inflationChart");
+      if (!canvas) return;
 
-      const emergencyFundGoal = rigid * 6;
-      const emergencyFundActual = Math.min(deposit, emergencyFundGoal);
-      const startPrincipal = Math.max(0, deposit - emergencyFundActual);
-
-      if (investableText) investableText.textContent = nf.format(investableMonthly);
-      if (emergencyText) emergencyText.textContent = nf.format(emergencyFundActual);
-      if (startPrincipalText) startPrincipalText.textContent = nf.format(startPrincipal);
-
-      const rate = 0.05;
-      const years = Array.from({ length: 31 }, (_, i) => i);
-
-      const projection = years.map(year => {
-        if (year === 0) return startPrincipal + emergencyFundActual;
-        const principalGrowth = startPrincipal * Math.pow(1 + rate, year);
-        const contributionGrowth = investableYearly * ((Math.pow(1 + rate, year) - 1) / rate);
-        return principalGrowth + contributionGrowth + emergencyFundActual;
+      const principal = 1000000;
+      const inflationRates = [0.02, 0.03, 0.05];
+      const datasets = inflationRates.map((rate, idx) => {
+        const colors = ["#94a3b8", "#3b82f6", "#ef4444"];
+        return {
+          label: `${Math.round(rate * 100)}% 通胀下的实际购买力`,
+          data: years.map(y => principal / Math.pow(1 + rate, y)),
+          borderColor: colors[idx],
+          backgroundColor: "transparent",
+          tension: 0.35,
+          fill: false,
+        };
       });
 
-      const pureDeposit = years.map(year =>
-        startPrincipal + emergencyFundActual + investableYearly * year
-      );
+      destroyIfExists(canvas);
+      new Chart(canvas, {
+        type: "line",
+        data: {
+          labels: years.map(y => `第${y}年`),
+          datasets,
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          interaction: { mode: "index", intersect: false },
+          plugins: {
+            title: { display: true, text: "100万元购买力在不同通胀情景下的变化" },
+            tooltip: {
+              callbacks: {
+                label: ctx => `${ctx.dataset.label}：${toCurrency(ctx.parsed.y)}`,
+              },
+            },
+          },
+          scales: {
+            y: {
+              ticks: { callback: value => toCurrency(value) },
+              title: { display: true, text: "实际购买力" },
+            },
+          },
+        },
+      });
+    }
 
-      if (chartInstance) chartInstance.destroy();
+    function renderCompoundChart() {
+      const canvas = document.getElementById("compoundInteractiveChart");
+      if (!canvas) return;
 
-      chartInstance = new Chart(canvas, {
+      const series1 = growthSeries(0.01);
+      const series5 = growthSeries(0.05);
+      const series8 = growthSeries(0.08);
+
+      destroyIfExists(canvas);
+      new Chart(canvas, {
         type: "line",
         data: {
           labels: years.map(y => `第${y}年`),
           datasets: [
             {
-              label: "投资总资产（5%年化假设）",
-              data: projection,
-              borderColor: "#10b981",
-              backgroundColor: "rgba(16, 185, 129, 0.14)",
+              label: "1%（余额宝）",
+              data: series1,
+              borderColor: "#94a3b8",
+              fill: false,
+              tension: 0.35,
+            },
+            {
+              label: "5%（理想收益）",
+              data: series5,
+              borderColor: "#3b82f6",
+              backgroundColor: "rgba(59,130,246,0.14)",
               fill: true,
               tension: 0.35,
             },
             {
-              label: "只存不投（现金累计）",
-              data: pureDeposit,
+              label: "8%（进取收益）",
+              data: series8,
+              borderColor: "#10b981",
+              fill: false,
+              tension: 0.35,
+            },
+          ],
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          interaction: { mode: "index", intersect: false },
+          plugins: {
+            title: { display: true, text: "固定参数下的30年资产曲线" },
+            tooltip: {
+              callbacks: {
+                label: ctx => `${ctx.dataset.label}：${toCurrency(ctx.parsed.y)}`,
+              },
+            },
+          },
+          scales: {
+            y: {
+              ticks: { callback: value => toCurrency(value) },
+              title: { display: true, text: "资产规模（元）" },
+            },
+            x: {
+              title: { display: true, text: "时间" },
+            },
+          },
+        },
+      });
+    }
+
+    function personalSeries(principal, monthlyContribution, annualRate, totalYears) {
+      const monthlyRate = annualRate / 12;
+      const points = Array.from({ length: totalYears + 1 }, (_, i) => i);
+      return points.map(y => {
+        const m = y * 12;
+        if (m === 0) return principal;
+        if (monthlyRate <= 0) return principal + monthlyContribution * m;
+        const principalGrowth = principal * Math.pow(1 + monthlyRate, m);
+        const monthlyGrowth =
+          monthlyContribution * ((Math.pow(1 + monthlyRate, m) - 1) / monthlyRate);
+        return principalGrowth + monthlyGrowth;
+      });
+    }
+
+    function renderPersonalChart() {
+      const canvas = document.getElementById("personalCompoundChart");
+      const principalEl = document.getElementById("personalPrincipalInput");
+      const monthlyEl = document.getElementById("personalMonthlyInput");
+      const annualEl = document.getElementById("personalReturnInput");
+      const yearsEl = document.getElementById("personalYearsInput");
+      if (!canvas || !principalEl || !monthlyEl || !annualEl || !yearsEl) return;
+
+      const principal = Math.max(0, Number(principalEl.value) || 0);
+      const monthlyContribution = Math.max(0, Number(monthlyEl.value) || 0);
+      const annualRate = Math.max(0, Number(annualEl.value) || 0) / 100;
+      const totalYears = Math.min(50, Math.max(1, Math.floor(Number(yearsEl.value) || 30)));
+
+      const labels = Array.from({ length: totalYears + 1 }, (_, i) => `第${i}年`);
+      const investSeries = personalSeries(principal, monthlyContribution, annualRate, totalYears);
+      const cashOnlySeries = labels.map((_, i) => principal + monthlyContribution * 12 * i);
+
+      const finalValue = investSeries[investSeries.length - 1];
+      const totalContribution = principal + monthlyContribution * 12 * totalYears;
+      const profit = finalValue - totalContribution;
+
+      const futureEl = document.getElementById("personalFutureValue");
+      const contributionEl = document.getElementById("personalTotalContribution");
+      const profitEl = document.getElementById("personalProfitValue");
+      if (futureEl) futureEl.textContent = toCurrency(finalValue);
+      if (contributionEl) contributionEl.textContent = toCurrency(totalContribution);
+      if (profitEl) profitEl.textContent = toCurrency(profit);
+
+      destroyIfExists(canvas);
+      new Chart(canvas, {
+        type: "line",
+        data: {
+          labels,
+          datasets: [
+            {
+              label: `复利增长（年化 ${(annualRate * 100).toFixed(1)}%）`,
+              data: investSeries,
+              borderColor: "#10b981",
+              backgroundColor: "rgba(16,185,129,0.14)",
+              fill: true,
+              tension: 0.35,
+            },
+            {
+              label: "只存不投（0%）",
+              data: cashOnlySeries,
               borderColor: "#e76f51",
               borderDash: [6, 4],
               fill: false,
@@ -116,30 +270,36 @@
           maintainAspectRatio: false,
           interaction: { mode: "index", intersect: false },
           plugins: {
-            title: { display: true, text: "你的30年资产变化模拟" },
+            title: { display: true, text: "你的个人复利测算曲线" },
             tooltip: {
               callbacks: {
-                label: context => `${context.dataset.label}：${currencyFormatter(context.parsed.y)}`,
+                label: ctx => `${ctx.dataset.label}：${toCurrency(ctx.parsed.y)}`,
               },
             },
           },
           scales: {
             y: {
-              title: { display: true, text: "总资产（元）" },
-              ticks: { callback: value => currencyFormatter(value) },
+              ticks: { callback: value => toCurrency(value) },
+              title: { display: true, text: "资产规模（元）" },
             },
-            x: {
-              title: { display: true, text: "时间" },
-            },
+            x: { title: { display: true, text: "时间" } },
           },
         },
       });
     }
 
-    [depositEl, incomeEl, rigidEl, elasticEl].forEach(el => {
-      el.addEventListener("input", renderUserChart);
-    });
+    renderInflationChart();
+    renderCompoundChart();
+    renderPersonalChart();
 
-    renderUserChart();
+    [
+      "personalPrincipalInput",
+      "personalMonthlyInput",
+      "personalReturnInput",
+      "personalYearsInput",
+    ].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.addEventListener("input", renderPersonalChart);
+    });
   })();
 </script>

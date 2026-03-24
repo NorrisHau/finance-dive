@@ -91,32 +91,9 @@ Nana给自己定了一个非常朴素的参数：
 
 她不关心“下周涨跌”，而是关心 30 年后“安全线抬到哪里”。
 
-关于复利，最常被引用的两句话是：
+复利的核心不是“暴利”，而是“持续 + 时间”。只要本金在、现金流不断、收益率稳定，时间会把微小优势放大。
 
-> “Compound interest is the eighth wonder of the world.”  
-> —— Albert Einstein（常见归引）
-
-> “My wealth has come from a combination of living in America, some lucky genes, and compound interest.”  
-> —— Warren Buffett
-
-它们的共同含义并不玄学：复利的核心不是“暴利”，而是“持续 + 时间”。只要本金在、现金流不断、收益率稳定，时间会把微小优势放大。
-
-下面这个交互图表可以直接改参数：你可以输入**初始资金、每年储蓄、目标收益率**，并与不同收益率路径对比。
-
-<div class="finance-input-panel" id="compoundControls">
-  <label>
-    初始资金（元）
-    <input id="initialPrincipalInput" type="number" min="0" step="1000" value="20000" />
-  </label>
-  <label>
-    每年新增储蓄（元）
-    <input id="annualContributionInput" type="number" min="0" step="1000" value="12000" />
-  </label>
-  <label>
-    目标收益率（%）
-    <input id="targetReturnInput" type="number" min="0" max="20" step="0.1" value="6" />
-  </label>
-</div>
+下面的图表采用固定参数对比：初始资金 50000 元，每月新增 4000 元，对比 1%（余额宝）、5%（理想收益）、8%（进取收益）。
 
 <div class="chart-card">
   <canvas id="compoundInteractiveChart"></canvas>
