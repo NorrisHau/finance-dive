@@ -68,3 +68,49 @@ html[data-theme="dark"] {
 :target {
   scroll-margin-block: 1rem;
 }
+
+@layer components {
+  .theme-hero {
+    @apply space-y-5;
+  }
+
+  .theme-eyebrow {
+    @apply text-xs font-semibold tracking-[0.22em] text-foreground/60 uppercase;
+  }
+
+  .theme-title {
+    @apply max-w-3xl text-3xl leading-tight font-semibold sm:text-5xl;
+  }
+
+  .theme-subtitle {
+    @apply max-w-2xl text-base leading-7 text-foreground/70;
+  }
+
+  .theme-switcher {
+    @apply mt-2 flex flex-wrap gap-3;
+  }
+
+  .theme-chip {
+    @apply rounded-full border border-border px-5 py-2 text-sm font-medium transition-all;
+  }
+
+  .theme-chip.is-active {
+    @apply border-foreground bg-foreground text-background;
+  }
+
+  .chart-card {
+    @apply my-8 rounded-2xl border border-border bg-background p-4 sm:p-6;
+  }
+
+  .finance-input-panel {
+    @apply grid gap-4 rounded-2xl border border-border bg-background p-4 sm:grid-cols-3 sm:p-6;
+  }
+
+  .finance-input-panel label {
+    @apply text-sm font-medium text-foreground/80;
+  }
+
+  .finance-input-panel input {
+    @apply mt-2 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm;
+  }
+}

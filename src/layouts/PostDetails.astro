@@ -296,7 +296,8 @@ const nextPost =
       }
 
       const script = document.createElement("script");
-      script.src = "https://cdn.jsdelivr.net/npm/chart.js@4.4.8/dist/chart.umd.min.js";
+      script.src =
+        "https://cdn.jsdelivr.net/npm/chart.js@4.4.8/dist/chart.umd.min.js";
       script.async = true;
       script.dataset.chartjsLoader = "true";
       script.onload = () => resolve(true);
@@ -309,9 +310,17 @@ const nextPost =
 
   async function renderFinanceChapterCharts() {
     const inflationCanvas = document.getElementById("inflationChart");
-    const compoundCanvas = document.getElementById("compoundChart");
+    const compoundCanvas = document.getElementById("compoundInteractiveChart");
+    const triangleCanvas = document.getElementById("triangleChart");
+    const marketPlayersCanvas = document.getElementById("marketPlayersChart");
 
-    if (!inflationCanvas && !compoundCanvas) return;
+    if (
+      !inflationCanvas &&
+      !compoundCanvas &&
+      !triangleCanvas &&
+      !marketPlayersCanvas
+    )
+      return;
 
     const Chart = await loadChartJs();
     if (!Chart) return;
@@ -327,38 +336,39 @@ const nextPost =
           labels: years.map(y => `第 ${y} 年`),
           datasets: [
             {
-              label: "3% 通胀下购买力 (万)",
+              label: "3% 通胀下购买力（万元）",
               data: inflation3,
-              borderColor: "rgba(255, 99, 132, 1)",
-              backgroundColor: "rgba(255, 99, 132, 0.2)",
+              borderColor: "rgba(52, 211, 153, 1)",
+              backgroundColor: "rgba(52, 211, 153, 0.16)",
               fill: true,
-              tension: 0.4,
+              tension: 0.28,
             },
             {
-              label: "5% 通胀下购买力 (万)",
+              label: "5% 通胀下购买力（万元）",
               data: inflation5,
-              borderColor: "rgba(54, 162, 235, 1)",
-              backgroundColor: "rgba(54, 162, 235, 0.2)",
+              borderColor: "rgba(248, 113, 113, 1)",
+              backgroundColor: "rgba(248, 113, 113, 0.14)",
               fill: true,
-              tension: 0.4,
+              tension: 0.28,
             },
           ],
         },
         options: {
           responsive: true,
+          interaction: { mode: "index", intersect: false },
           plugins: {
             title: {
               display: true,
-              text: "100万初始资金购买力变化趋势 (折线图)",
+              text: "100万元购买力在30年中的变化（通胀情景）",
             },
           },
           scales: {
             y: {
               beginAtZero: true,
-              title: { display: true, text: "实际购买力 (折合万)" },
+              title: { display: true, text: "购买力（万元）" },
             },
             x: {
-              title: { display: true, text: "时间 (年)" },
+              title: { display: true, text: "时间（年）" },
             },
           },
         },
@@ -368,33 +378,123 @@ const nextPost =
     }
 
     if (compoundCanvas && !compoundCanvas.dataset.chartRendered) {
+      const principalInput = document.getElementById("initialPrincipalInput");
+      const contributionInput = document.getElementById(
+        "annualContributionInput"
+      );
+      const targetReturnInput = document.getElementById("targetReturnInput");
       const years = Array.from({ length: 31 }, (_, i) => i);
-      const rate0 = years.map(() => 10);
-      const rate3 = years.map(y => 10 * Math.pow(1 + 0.03, y));
-      const rate8 = years.map(y => 10 * Math.pow(1 + 0.08, y));
 
-      new Chart(compoundCanvas, {
-        type: "line",
-        data: {
+      const calculatePath = (principal, annualContribution, ratePercent) => {
+        const rate = ratePercent / 100;
+        let value = principal;
+        return years.map((_, idx) => {
+          if (idx === 0) return value;
+          value = value * (1 + rate) + annualContribution;
+          return value;
+        });
+      };
+
+      const parseNumber = (value, fallback) => {
+        const num = Number(value);
+        return Number.isFinite(num) ? num : fallback;
+      };
+
+      const buildData = () => {
+        const principal = parseNumber(principalInput?.value, 20000);
+        const annualContribution = parseNumber(contributionInput?.value, 12000);
+        const targetReturn = parseNumber(targetReturnInput?.value, 6);
+
+        return {
           labels: years.map(y => `第 ${y} 年`),
           datasets: [
             {
-              label: "0% 收益 (藏床底)",
-              data: rate0,
-              borderColor: "rgba(201, 203, 207, 1)",
-              tension: 0.4,
+              label: "2%（保守情景）",
+              data: calculatePath(principal, annualContribution, 2),
+              borderColor: "rgba(148, 163, 184, 1)",
+              tension: 0.25,
             },
             {
-              label: "3% 年化收益",
-              data: rate3,
-              borderColor: "rgba(255, 205, 86, 1)",
-              tension: 0.4,
+              label: `目标收益率 ${targetReturn.toFixed(1)}%`,
+              data: calculatePath(principal, annualContribution, targetReturn),
+              borderColor: "rgba(59, 130, 246, 1)",
+              backgroundColor: "rgba(59, 130, 246, 0.14)",
+              fill: true,
+              tension: 0.25,
             },
             {
-              label: "8% 年化收益 (复利奇迹)",
-              data: rate8,
-              borderColor: "rgba(75, 192, 192, 1)",
-              tension: 0.4,
+              label: "8%（进取情景）",
+              data: calculatePath(principal, annualContribution, 8),
+              borderColor: "rgba(16, 185, 129, 1)",
+              tension: 0.25,
+            },
+          ],
+        };
+      };
+
+      const compoundChart = new Chart(compoundCanvas, {
+        type: "line",
+        data: buildData(),
+        options: {
+          responsive: true,
+          interaction: { mode: "index", intersect: false },
+          plugins: {
+            title: {
+              display: true,
+              text: "30年资金增长对比：可调本金、年储蓄与目标收益率",
+            },
+            tooltip: {
+              callbacks: {
+                label: context =>
+                  `${context.dataset.label}：¥${Math.round(context.parsed.y).toLocaleString()}`,
+              },
+            },
+          },
+          scales: {
+            y: {
+              title: { display: true, text: "总资产（元）" },
+              ticks: {
+                callback: value => `¥${Number(value).toLocaleString()}`,
+              },
+            },
+            x: { title: { display: true, text: "时间（年）" } },
+          },
+        },
+      });
+
+      [principalInput, contributionInput, targetReturnInput].forEach(input => {
+        input?.addEventListener("input", () => {
+          compoundChart.data = buildData();
+          compoundChart.update();
+        });
+      });
+
+      compoundCanvas.dataset.chartRendered = "true";
+    }
+
+    if (triangleCanvas && !triangleCanvas.dataset.chartRendered) {
+      new Chart(triangleCanvas, {
+        type: "radar",
+        data: {
+          labels: ["安全性", "流动性", "收益潜力"],
+          datasets: [
+            {
+              label: "货币类/现金管理",
+              data: [9, 9, 3],
+              borderColor: "rgba(148, 163, 184, 1)",
+              backgroundColor: "rgba(148, 163, 184, 0.18)",
+            },
+            {
+              label: "债券基金",
+              data: [7, 6, 5],
+              borderColor: "rgba(59, 130, 246, 1)",
+              backgroundColor: "rgba(59, 130, 246, 0.14)",
+            },
+            {
+              label: "股票/权益ETF",
+              data: [4, 6, 8],
+              borderColor: "rgba(16, 185, 129, 1)",
+              backgroundColor: "rgba(16, 185, 129, 0.14)",
             },
           ],
         },
@@ -403,21 +503,59 @@ const nextPost =
           plugins: {
             title: {
               display: true,
-              text: "10万元投资在不同收益下的复利增长曲线",
+              text: "不可能三角示意：不同工具的取舍分布",
             },
           },
           scales: {
-            y: {
-              title: { display: true, text: "总资产 (万)" },
-            },
-            x: {
-              title: { display: true, text: "时间 (年)" },
+            r: {
+              beginAtZero: true,
+              max: 10,
+              ticks: { stepSize: 2 },
             },
           },
         },
       });
 
-      compoundCanvas.dataset.chartRendered = "true";
+      triangleCanvas.dataset.chartRendered = "true";
+    }
+
+    if (marketPlayersCanvas && !marketPlayersCanvas.dataset.chartRendered) {
+      new Chart(marketPlayersCanvas, {
+        type: "bar",
+        data: {
+          labels: ["散户", "量化策略", "公募基金", "私募基金"],
+          datasets: [
+            {
+              label: "速度优势",
+              data: [3, 10, 6, 7],
+              backgroundColor: "rgba(244, 114, 182, 0.65)",
+            },
+            {
+              label: "耐心与时间优势",
+              data: [8, 4, 5, 6],
+              backgroundColor: "rgba(96, 165, 250, 0.7)",
+            },
+          ],
+        },
+        options: {
+          responsive: true,
+          plugins: {
+            title: {
+              display: true,
+              text: "市场参与者能力维度（示意）：速度 vs 长期耐心",
+            },
+          },
+          scales: {
+            y: {
+              beginAtZero: true,
+              max: 10,
+              title: { display: true, text: "相对优势评分" },
+            },
+          },
+        },
+      });
+
+      marketPlayersCanvas.dataset.chartRendered = "true";
     }
   }
 
