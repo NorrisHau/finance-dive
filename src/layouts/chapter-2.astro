@@ -6,10 +6,14 @@
 // 3) 风险地图（常见度 vs 破坏性）
 ---
 
-<section class="chapter-viz mt-4 space-y-4 border-t border-dashed border-skin-line pt-4">
+<section
+  class="chapter-viz border-skin-line mt-4 space-y-4 border-t border-dashed pt-4"
+>
   <div class="chart-card">
     <h3 class="mb-3 text-lg font-semibold">不可能三角：多资产同图对比</h3>
-    <p class="mb-4 text-sm text-foreground/70">图例在图上方，颜色仅用于区分资产，不代表好坏。</p>
+    <p class="mb-4 text-sm text-foreground/70">
+      图例在图上方，颜色仅用于区分资产，不代表好坏。
+    </p>
     <div class="triangle-legend" id="triangleLegend"></div>
     <canvas id="triangleChart"></canvas>
   </div>
@@ -17,7 +21,9 @@
   <div class="quant-scene" id="quantScene">
     <div class="quant-scene__head">
       <p class="quant-scene__title">10 秒执行动画：量化与散户的动作差距</p>
-      <p class="quant-scene__subtitle" id="quantSceneCaption">第 0.0 秒：等待信号出现</p>
+      <p class="quant-scene__subtitle" id="quantSceneCaption">
+        第 0.0 秒：等待信号出现
+      </p>
     </div>
 
     <div class="quant-axis">
@@ -65,21 +71,40 @@
 
 <script is:inline data-astro-rerun>
   (async function () {
+    const stateKey = "__chapter2State";
+
+    function destroyPreviousState() {
+      const previous = window[stateKey];
+      if (previous?.cleanup) {
+        previous.cleanup();
+      }
+      window[stateKey] = { cleanup: () => {} };
+    }
+
     function loadChartJs() {
       if (window.Chart) return Promise.resolve(window.Chart);
 
       return new Promise((resolve, reject) => {
-        const existing = document.querySelector('script[data-chartjs-loader="true"]');
+        const existing = document.querySelector(
+          'script[data-chartjs-loader="true"]'
+        );
         if (existing) {
-          existing.addEventListener("load", () => resolve(window.Chart), { once: true });
-          existing.addEventListener("error", () => reject(new Error("Chart.js load failed")), {
+          existing.addEventListener("load", () => resolve(window.Chart), {
             once: true,
           });
+          existing.addEventListener(
+            "error",
+            () => reject(new Error("Chart.js load failed")),
+            {
+              once: true,
+            }
+          );
           return;
         }
 
         const script = document.createElement("script");
-        script.src = "https://cdn.jsdelivr.net/npm/chart.js@4.4.8/dist/chart.umd.min.js";
+        script.src =
+          "https://cdn.jsdelivr.net/npm/chart.js@4.4.8/dist/chart.umd.min.js";
         script.async = true;
         script.dataset.chartjsLoader = "true";
         script.onload = () => resolve(window.Chart);
@@ -88,10 +113,16 @@
       });
     }
 
-    async function initTriangleChart() {
+    function destroyChartIfExists(Chart, canvas) {
+      if (!Chart || !canvas) return;
+      const existing = Chart.getChart(canvas);
+      if (existing) existing.destroy();
+    }
+
+    async function initTriangleChart(Chart) {
       const canvas = document.getElementById("triangleChart");
       const legend = document.getElementById("triangleLegend");
-      if (!canvas || !legend || canvas.dataset.rendered === "true") return;
+      if (!canvas || !legend) return null;
 
       const assets = [
         { name: "货币基金 / 现金管理", values: [9, 9, 3], color: "#3b82f6" },
@@ -109,10 +140,9 @@
         )
         .join("");
 
-      const Chart = await loadChartJs().catch(() => null);
-      if (!Chart) return;
+      destroyChartIfExists(Chart, canvas);
 
-      new Chart(canvas, {
+      return new Chart(canvas, {
         type: "radar",
         data: {
           labels: ["安全性", "流动性", "收益潜力"],
@@ -149,30 +179,27 @@
           },
         },
       });
-
-      canvas.dataset.rendered = "true";
     }
 
     function initQuantScene() {
       const root = document.getElementById("quantScene");
       const playhead = document.getElementById("quantPlayhead");
       const caption = document.getElementById("quantSceneCaption");
-      if (!root || !playhead || !caption || root.dataset.bound === "true") return;
+      if (!root || !playhead || !caption) return () => {};
 
-      if (window.__chapter2QuantTimer) {
-        window.clearInterval(window.__chapter2QuantTimer);
-        window.__chapter2QuantTimer = null;
-      }
-
+      const reduceMotion = window.matchMedia(
+        "(prefers-reduced-motion: reduce)"
+      ).matches;
       const duration = 10;
-      const stepMs = 100;
       const signal = root.querySelector(".quant-window");
-      const events = Array.from(root.querySelectorAll(".quant-event")).map(el => ({
-        el,
-        start: Number(el.dataset.start || 0),
-        end: Number(el.dataset.end || 0),
-        text: el.textContent?.trim() || "动作",
-      }));
+      const events = Array.from(root.querySelectorAll(".quant-event")).map(
+        el => ({
+          el,
+          start: Number(el.dataset.start || 0),
+          end: Number(el.dataset.end || 0),
+          text: el.textContent?.trim() || "动作",
+        })
+      );
 
       function placeByTime(element, start, end) {
         const left = Math.max(0, Math.min(100, (start / duration) * 100));
@@ -182,21 +209,36 @@
       }
 
       if (signal) {
-        placeByTime(signal, Number(signal.dataset.start || 1), Number(signal.dataset.end || 3));
+        placeByTime(
+          signal,
+          Number(signal.dataset.start || 1),
+          Number(signal.dataset.end || 3)
+        );
       }
       events.forEach(item => placeByTime(item.el, item.start, item.end));
 
-      const startedAt = Date.now();
-      const tick = () => {
-        if (!document.body.contains(root)) {
-          if (window.__chapter2QuantTimer) {
-            window.clearInterval(window.__chapter2QuantTimer);
-            window.__chapter2QuantTimer = null;
-          }
+      if (reduceMotion) {
+        playhead.style.left = "10%";
+        caption.textContent =
+          "检测到减少动态效果设置：已暂停动画，仅保留静态时间轴";
+        return () => {};
+      }
+
+      let rafId = 0;
+      let lastPaint = 0;
+      let isVisible = !document.hidden;
+      const startedAt = performance.now();
+
+      function render(now) {
+        if (!isVisible || !document.body.contains(root)) return;
+
+        if (now - lastPaint < 120) {
+          rafId = requestAnimationFrame(render);
           return;
         }
+        lastPaint = now;
 
-        const elapsed = ((Date.now() - startedAt) / 1000) % duration;
+        const elapsed = ((now - startedAt) / 1000) % duration;
         const progress = elapsed / duration;
         playhead.style.left = `${(progress * 100).toFixed(2)}%`;
 
@@ -208,23 +250,38 @@
         events.forEach(item => {
           const active = elapsed >= item.start && elapsed <= item.end;
           item.el.classList.toggle("is-active", active);
-          if (active) text = `第 ${elapsed.toFixed(1)} 秒：量化执行 ${item.text}`;
+          if (active)
+            text = `第 ${elapsed.toFixed(1)} 秒：量化执行 ${item.text}`;
         });
 
         caption.textContent = text;
-      };
+        rafId = requestAnimationFrame(render);
+      }
 
-      tick();
-      window.__chapter2QuantTimer = window.setInterval(tick, stepMs);
-      root.dataset.bound = "true";
+      function onVisibilityChange() {
+        isVisible = !document.hidden;
+        if (isVisible && !rafId) {
+          rafId = requestAnimationFrame(render);
+        }
+        if (!isVisible && rafId) {
+          cancelAnimationFrame(rafId);
+          rafId = 0;
+        }
+      }
+
+      document.addEventListener("visibilitychange", onVisibilityChange);
+      rafId = requestAnimationFrame(render);
+
+      return () => {
+        if (rafId) cancelAnimationFrame(rafId);
+        events.forEach(item => item.el.classList.remove("is-active"));
+        document.removeEventListener("visibilitychange", onVisibilityChange);
+      };
     }
 
-    async function initRiskMatrixChart() {
+    async function initRiskMatrixChart(Chart) {
       const canvas = document.getElementById("riskMatrixChart");
-      if (!canvas || canvas.dataset.rendered === "true") return;
-
-      const Chart = await loadChartJs().catch(() => null);
-      if (!Chart) return;
+      if (!canvas) return null;
 
       const risks = [
         { x: 8, y: 9, r: 11, name: "行为风险", color: "#ef4444" },
@@ -234,7 +291,9 @@
         { x: 3, y: 6, r: 7, name: "信用风险", color: "#3b82f6" },
       ];
 
-      new Chart(canvas, {
+      destroyChartIfExists(Chart, canvas);
+
+      return new Chart(canvas, {
         type: "bubble",
         data: {
           datasets: risks.map(item => ({
@@ -277,12 +336,23 @@
           },
         },
       });
-
-      canvas.dataset.rendered = "true";
     }
 
-    await initTriangleChart();
-    initQuantScene();
-    await initRiskMatrixChart();
+    destroyPreviousState();
+
+    const Chart = await loadChartJs().catch(() => null);
+    if (!Chart) return;
+
+    const triangleChart = await initTriangleChart(Chart);
+    const riskChart = await initRiskMatrixChart(Chart);
+    const disposeQuant = initQuantScene();
+
+    window[stateKey] = {
+      cleanup: () => {
+        disposeQuant();
+        if (triangleChart) triangleChart.destroy();
+        if (riskChart) riskChart.destroy();
+      },
+    };
   })();
 </script>
