@@ -11,7 +11,41 @@ type Props = {
 
 const { variant: Heading = "h2", index = 0, id, data, filePath } = Astro.props;
 
-const { title, description, ...props } = data;
+const { title, description, tags = [], ...props } = data;
+
+const rawBody = (Astro.props.body ?? "") as string;
+const plainBody = rawBody
+  .replace(/```[\s\S]*?```/g, " ")
+  .replace(/`[^`]*`/g, " ")
+  .replace(/!\[[^\]]*]\([^)]*\)/g, " ")
+  .replace(/\[[^\]]*]\([^)]*\)/g, " ")
+  .replace(/[#>*_\-\n]/g, " ")
+  .replace(/\s+/g, " ")
+  .trim();
+
+const previewBase = plainBody || description;
+const previewText =
+  previewBase.length > 108
+    ? `${previewBase.slice(0, 108).trim()}…`
+    : previewBase;
+
+const domain = tags.includes("technology")
+  ? "technology"
+  : tags.includes("health")
+    ? "health"
+    : "investment";
+
+const domainLabelMap = {
+  investment: "投资",
+  technology: "科技",
+  health: "健康",
+};
+
+const domainIconMap = {
+  investment: "◉",
+  technology: "⌁",
+  health: "🌿",
+};
 ---
 
 <li class="my-6" style={`--card-index:${index};`}>
@@ -24,12 +58,18 @@ const { title, description, ...props } = data;
     style="animation-delay: calc(var(--card-index, 0) * 90ms);"
   >
     <Heading
-      class="bento-card__title text-accent"
+      class="bento-card__title text-foreground"
       style={{ viewTransitionName: slugifyStr(title.replaceAll(".", "-")) }}
     >
       {title}
     </Heading>
-    <Datetime class="bento-card__meta" {...props} />
-    <p class="bento-card__desc">{description}</p>
+    <p class="bento-card__desc">{previewText}</p>
+    <div class="bento-card__meta">
+      <Datetime {...props} />
+      <span class="domain-pill" data-domain={domain}>
+        <span aria-hidden="true">{domainIconMap[domain]}</span>
+        {domainLabelMap[domain]}
+      </span>
+    </div>
   </a>
 </li>

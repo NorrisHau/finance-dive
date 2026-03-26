@@ -14,7 +14,7 @@ const sortedPosts = getSortedPosts(posts);
 
 <Layout>
   <Header />
-  <main id="main-content" data-layout="index" class="app-layout">
+  <main id="main-content" data-layout="index" class="page-enter app-layout">
     <section class="theme-hero border-b border-border py-10">
       <p class="theme-eyebrow">Nana's Wealth Log · 2026</p>
       <h1 class="theme-title">用极简框架，构建长期有效的投资系统</h1>
@@ -68,7 +68,7 @@ const sortedPosts = getSortedPosts(posts);
       role="tabpanel"
       aria-labelledby="theme-tab-investment"
     >
-      <div class="mb-6 flex items-end justify-between gap-4">
+      <div class="mb-8 flex items-end justify-between gap-4">
         <h2 class="text-2xl font-semibold tracking-wide">投资主题</h2>
         <span class="text-sm text-foreground/60"
           >当前已上线章节：{sortedPosts.length}</span
