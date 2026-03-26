@@ -31,7 +31,7 @@
 
     p,
     li {
-      @apply leading-8;
+      @apply text-[20px] leading-[1.9] font-medium;
       font-family:
         "Source Han Serif SC", "Noto Serif SC", "Source Serif Pro", "Songti SC",
         "STSong", serif;

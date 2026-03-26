@@ -259,8 +259,8 @@ html[data-theme="dark"] {
   }
 
   .search-reveal {
-    @apply relative flex items-center overflow-hidden rounded-full border border-border/70 bg-background/80;
-    width: 2.2rem;
+    @apply relative flex items-center overflow-hidden rounded-full border border-border/70 bg-background/80 text-foreground;
+    width: 2.6rem;
     transition:
       width 220ms ease,
       border-color 200ms ease,
@@ -274,7 +274,7 @@ html[data-theme="dark"] {
   }
 
   .search-reveal__trigger {
-    @apply absolute top-1/2 right-1 z-10 flex size-8 -translate-y-1/2 items-center justify-center rounded-full hover:bg-muted/45;
+    @apply relative z-10 ms-auto flex size-8 shrink-0 items-center justify-center rounded-full hover:bg-muted/45;
   }
 
   .search-reveal__form {
@@ -308,7 +308,7 @@ html[data-theme="dark"] {
   }
 
   .post-shell {
-    @apply block xl:mx-auto xl:grid xl:max-w-[1120px] xl:grid-cols-[220px_minmax(0,760px)] xl:justify-center xl:gap-10;
+    @apply block xl:mx-auto xl:grid xl:max-w-[1240px] xl:grid-cols-[220px_minmax(0,960px)] xl:justify-center xl:gap-12;
   }
 
   .post-toc {
