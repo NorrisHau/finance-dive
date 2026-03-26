@@ -114,7 +114,7 @@ const isActive = (path: string) => {
             <button
               id="search-trigger"
               type="button"
-              class="focus-outline search-reveal__trigger p-3 sm:p-1"
+              class="focus-outline search-reveal__trigger p-2.5 sm:p-1.5"
               aria-expanded="false"
               aria-controls="header-search-input"
               aria-label="Expand search"
@@ -137,13 +137,6 @@ const isActive = (path: string) => {
                 placeholder="Search..."
                 autocomplete="off"
               />
-              <button
-                type="submit"
-                class="focus-outline search-reveal__submit"
-                aria-label="Submit search"
-              >
-                搜索
-              </button>
             </form>
           </div>
         </li>
@@ -161,6 +154,7 @@ const isActive = (path: string) => {
     const trigger = wrapper?.querySelector<HTMLButtonElement>("#search-trigger");
     const input = wrapper?.querySelector<HTMLInputElement>("#header-search-input");
     if (!wrapper || !trigger || !input) return;
+    let lockedByFocus = false;
 
     const openSearch = ({ focusInput }: { focusInput?: boolean } = {}) => {
       wrapper.classList.add("is-open");
@@ -171,6 +165,7 @@ const isActive = (path: string) => {
     };
 
     const closeSearch = () => {
+      if (lockedByFocus) return;
       wrapper.classList.remove("is-open");
       trigger.setAttribute("aria-expanded", "false");
     };
@@ -183,9 +178,19 @@ const isActive = (path: string) => {
       if (!isTouchLikeDevice()) closeSearch();
     });
 
+    input.addEventListener("focus", () => {
+      lockedByFocus = true;
+      openSearch();
+    });
+
+    input.addEventListener("blur", () => {
+      lockedByFocus = false;
+    });
+
     trigger.addEventListener("click", event => {
       event.preventDefault();
       if (wrapper.classList.contains("is-open")) {
+        lockedByFocus = false;
         closeSearch();
       } else {
         openSearch({ focusInput: true });
@@ -194,6 +199,7 @@ const isActive = (path: string) => {
 
     document.addEventListener("click", event => {
       if (!wrapper.contains(event.target as Node)) {
+        lockedByFocus = false;
         closeSearch();
       }
     });
