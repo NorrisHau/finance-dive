@@ -353,17 +353,42 @@ html[data-theme="dark"] {
     background: linear-gradient(90deg, #be8f47, var(--color-accent));
   }
 
-  .post-shell {
-    @apply block xl:mx-auto xl:grid xl:max-w-[1240px] xl:grid-cols-[220px_minmax(0,960px)] xl:justify-center xl:gap-12;
+  .article-wrapper {
+    @apply mt-8 grid gap-y-6;
+    grid-template-columns:
+      [left-start] minmax(0, 1fr)
+      [content-start] minmax(0, 960px)
+      [content-end] minmax(0, 1fr)
+      [right-end];
+  }
+
+  .article-wrapper > * {
+    grid-column: content-start / content-end;
+  }
+
+  .article-header {
+    @apply mb-2;
   }
 
   .article-prose-wrapper {
-    @apply w-full max-w-[960px] rounded-[30px] bg-card-bg/70 px-8 py-10;
+    @apply w-full rounded-[30px] bg-card-bg/70 px-6 py-8 sm:px-8 sm:py-10;
+    grid-column: content-start / content-end;
   }
 
   .post-toc {
     @apply sticky top-24 self-start p-1;
+    grid-column: left-start / content-start;
     max-height: calc(100vh - 7rem);
+  }
+
+  @media (max-width: 1279px) {
+    .article-wrapper {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    .article-wrapper > * {
+      grid-column: 1 / -1;
+    }
   }
 
   .post-toc__title {
@@ -382,9 +407,7 @@ html[data-theme="dark"] {
 
   .post-toc__link {
     @apply rounded-md px-1 py-1 text-sm text-foreground/70 no-underline transition-colors hover:text-accent;
-    font-family:
-      "Source Han Serif SC", "Noto Serif SC", "Source Serif Pro", "Songti SC",
-      "STSong", serif;
+    font-family: "Inter", "Noto Sans SC", system-ui, -apple-system, sans-serif;
   }
 
   .post-toc__link.is-sub {
