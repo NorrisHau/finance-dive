@@ -73,7 +73,7 @@ html[data-theme="dark"] {
 }
 
 @utility max-w-app {
-  @apply max-w-3xl;
+  @apply max-w-[1600px];
 }
 
 @utility app-layout {
@@ -311,6 +311,10 @@ html[data-theme="dark"] {
     @apply block xl:mx-auto xl:grid xl:max-w-[1240px] xl:grid-cols-[220px_minmax(0,960px)] xl:justify-center xl:gap-12;
   }
 
+  .article-prose-wrapper {
+    @apply w-full max-w-[960px] rounded-[30px] bg-card-bg/70 px-8 py-10;
+  }
+
   .post-toc {
     @apply sticky top-24 self-start p-1;
     max-height: calc(100vh - 7rem);
@@ -339,6 +343,10 @@ html[data-theme="dark"] {
 
   .post-toc__link.is-sub {
     @apply ms-3 text-xs opacity-80;
+  }
+
+  .post-toc__link.is-active {
+    @apply text-accent;
   }
 
   .triangle-legend {
