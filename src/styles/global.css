@@ -142,7 +142,7 @@ html[data-theme="dark"] {
   }
 
   .theme-grid {
-    @apply grid grid-cols-1 gap-4;
+    @apply grid grid-cols-1 gap-2.5;
   }
 
   .theme-grid > li {
@@ -150,7 +150,7 @@ html[data-theme="dark"] {
   }
 
   .bento-card {
-    @apply flex items-stretch gap-5 rounded-2xl border border-border p-5 transition duration-200 ease-out sm:gap-6 sm:p-6;
+    @apply flex items-stretch gap-4 rounded-xl border border-border p-4 transition duration-200 ease-out sm:gap-5 sm:p-5;
     background: color-mix(in srgb, var(--color-card-bg) 96%, transparent);
     animation: card-enter 360ms ease-out both;
     transform-origin: center;
@@ -171,7 +171,7 @@ html[data-theme="dark"] {
   }
 
   .bento-card__title {
-    @apply line-clamp-2 text-2xl leading-snug font-semibold sm:text-4xl;
+    @apply line-clamp-2 text-xl leading-snug font-semibold sm:text-3xl;
     font-family: "Charter", "Source Serif Pro", "Noto Serif SC", Georgia, serif;
     background-image: linear-gradient(currentColor, currentColor);
     background-position: 0 100%;
@@ -188,18 +188,18 @@ html[data-theme="dark"] {
   }
 
   .bento-card__meta {
-    @apply mt-4 flex flex-wrap items-center gap-3;
+    @apply mt-3 flex flex-wrap items-center gap-2.5;
     font-family:
       "JetBrains Mono", "IBM Plex Mono", "SFMono-Regular", ui-monospace,
       monospace;
   }
 
   .bento-card__desc {
-    @apply mt-3 mb-4 line-clamp-2 text-base leading-7 text-[#666666];
+    @apply mt-2 mb-3 line-clamp-2 text-sm leading-6 text-[#666666];
   }
 
   .bento-card__thumb {
-    @apply hidden h-[104px] w-[156px] shrink-0 overflow-hidden rounded-xl bg-muted sm:block;
+    @apply hidden h-[92px] w-[138px] shrink-0 overflow-hidden rounded-lg bg-muted sm:block;
   }
 
   .bento-card__thumb img,
@@ -422,4 +422,9 @@ html[data-theme="dark"] {
 ::view-transition-old(root),
 ::view-transition-new(root) {
   animation: none;
+}
+
+.app-header,
+.app-header * {
+  view-transition-name: none !important;
 }

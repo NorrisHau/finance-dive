@@ -77,10 +77,11 @@ const sortedPosts = getSortedPosts(posts);
       <ul class="theme-grid">
         {
           sortedPosts.map((data, index) => (
-            <Card variant="h3" index={index} {...data} />
+            <Card variant="h3" index={index} lazy={index > 5} {...data} />
           ))
         }
       </ul>
+      <div id="home-posts-sentinel" class="h-4" aria-hidden="true"></div>
     </section>
 
     <section
@@ -113,7 +114,7 @@ const sortedPosts = getSortedPosts(posts);
 
     <div class="my-8 text-center">
       <LinkButton href="/posts/">
-        查看全部文章
+        文章目录
         <IconArrowRight class="inline-block rtl:-rotate-180" />
       </LinkButton>
     </div>
@@ -151,5 +152,41 @@ const sortedPosts = getSortedPosts(posts);
       const tabEl = tab as HTMLElement;
       tabEl.addEventListener("click", () => activate(tabEl.dataset.theme));
     });
+
+    const cards = Array.from(
+      document.querySelectorAll<HTMLElement>("[data-home-card]")
+    );
+    const sentinel = document.querySelector<HTMLElement>("#home-posts-sentinel");
+    if (!cards.length || !sentinel) return;
+
+    const estimateCardHeight = 168;
+    const initialCount = Math.max(
+      6,
+      Math.ceil(((window.innerHeight || 800) * 2) / estimateCardHeight)
+    );
+    const batchCount = 4;
+    let shownCount = 0;
+
+    const reveal = (count: number) => {
+      const nextCount = Math.min(cards.length, shownCount + count);
+      for (let i = shownCount; i < nextCount; i++) {
+        cards[i]?.removeAttribute("hidden");
+      }
+      shownCount = nextCount;
+      if (shownCount >= cards.length) observer?.disconnect();
+    };
+
+    reveal(initialCount);
+
+    const observer = new IntersectionObserver(
+      entries => {
+        if (entries.some(entry => entry.isIntersecting)) {
+          reveal(batchCount);
+        }
+      },
+      { rootMargin: "220px 0px" }
+    );
+
+    observer.observe(sentinel);
   });
 </script>
