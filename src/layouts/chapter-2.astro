@@ -1,10 +1,377 @@
 ---
 // src/layouts/chapter-2.astro
-// 根据最新内容要求：第二章不再展示任何图表或动画交互。
+// 第二章图表：资产三角、风险矩阵、量化时间轴、决策流程、市场生态结构
 ---
 
-<section class="chapter-viz border-skin-line mt-4 border-t border-dashed pt-4">
-  <p class="text-sm text-foreground/70">
-    第二章图表与动画已移除。本章以文字内容为主，建议结合第四章和第五章的执行清单完成实践。
-  </p>
+<section
+  class="chapter-viz border-skin-line mt-12 space-y-8 border-t border-dashed pt-8"
+>
+  <div>
+    <h3 class="mb-2 text-lg font-bold">图 1：资产“不可能三角”</h3>
+    <p class="mb-3 text-sm text-foreground/70">
+      三个顶点分别代表收益、安全与流动性。越靠近某个顶点，说明该资产在该维度越突出。
+    </p>
+    <div class="chart-card bg-skin-card">
+      <canvas id="triangleChart"></canvas>
+    </div>
+  </div>
+
+  <div>
+    <h3 class="mb-2 text-lg font-bold">图 2：风险二维图（频率 × 破坏性）</h3>
+    <p class="mb-3 text-sm text-foreground/70">
+      帮助你把“常见但可控”与“低频但致命”区分开，减少误判。
+    </p>
+    <div class="chart-card bg-skin-card">
+      <canvas id="riskMatrixChart"></canvas>
+    </div>
+  </div>
+
+  <div>
+    <h3 class="mb-2 text-lg font-bold">图 3：量化 vs 人类时间轴（0-10 秒）</h3>
+    <p class="mb-3 text-sm text-foreground/70">
+      同一信号窗口中，量化可多次执行，人类通常仍在观察与确认。
+    </p>
+    <div class="chart-card bg-skin-card">
+      <canvas id="timelineChart"></canvas>
+    </div>
+  </div>
+
+  <div>
+    <h3 class="mb-2 text-lg font-bold">图 4：资金决策流程图（铁律顺序）</h3>
+    <p class="mb-3 text-sm text-foreground/70">
+      资金期限 → 可承受回撤 → 资产配置 → 收益目标，顺序不可颠倒。
+    </p>
+    <div class="chart-card bg-skin-card">
+      <canvas id="decisionFlowChart"></canvas>
+    </div>
+  </div>
+
+  <div>
+    <h3 class="mb-2 text-lg font-bold">图 5：市场参与者生态结构图</h3>
+    <p class="mb-3 text-sm text-foreground/70">
+      看见市场是一个系统，而不是“我和另一个散户”的简单对手盘。
+    </p>
+    <div class="chart-card bg-skin-card">
+      <canvas id="ecosystemChart"></canvas>
+    </div>
+  </div>
 </section>
+
+<script is:inline data-astro-rerun>
+  (async function () {
+    function loadChartJs() {
+      if (window.Chart) return Promise.resolve(window.Chart);
+
+      return new Promise((resolve, reject) => {
+        const existing = document.querySelector(
+          'script[data-chartjs-loader="true"]'
+        );
+        if (existing) {
+          existing.addEventListener("load", () => resolve(window.Chart), {
+            once: true,
+          });
+          existing.addEventListener(
+            "error",
+            () => reject(new Error("Chart.js load failed")),
+            {
+              once: true,
+            }
+          );
+          return;
+        }
+
+        const script = document.createElement("script");
+        script.src =
+          "https://cdn.jsdelivr.net/npm/chart.js@4.4.8/dist/chart.umd.min.js";
+        script.async = true;
+        script.dataset.chartjsLoader = "true";
+        script.onload = () => resolve(window.Chart);
+        script.onerror = () => reject(new Error("Chart.js load failed"));
+        document.head.appendChild(script);
+      });
+    }
+
+    const Chart = await loadChartJs().catch(() => null);
+    if (!Chart) return;
+
+    const isMobile = window.matchMedia("(max-width: 767px)").matches;
+    const theme = {
+      steel: "#758f98",
+      slate: "#87929b",
+      sage: "#7f998b",
+      clay: "#b18d81",
+      amber: "#b99864",
+      rose: "#b57d84",
+      fillSteel: "rgba(117,143,152,0.22)",
+      fillSage: "rgba(127,153,139,0.22)",
+      fillAmber: "rgba(185,152,100,0.22)",
+      fillRose: "rgba(181,125,132,0.22)",
+    };
+
+    function destroyIfExists(canvas) {
+      const existing = Chart.getChart(canvas);
+      if (existing) existing.destroy();
+    }
+
+    function renderTriangleChart() {
+      const canvas = document.getElementById("triangleChart");
+      if (!canvas) return;
+
+      destroyIfExists(canvas);
+      new Chart(canvas, {
+        type: "radar",
+        data: {
+          labels: ["收益", "安全", "流动性"],
+          datasets: [
+            {
+              label: "现金类",
+              data: [20, 90, 95],
+              borderColor: theme.slate,
+              backgroundColor: "rgba(135,146,155,0.18)",
+            },
+            {
+              label: "债券",
+              data: [45, 75, 70],
+              borderColor: theme.steel,
+              backgroundColor: theme.fillSteel,
+            },
+            {
+              label: "股票",
+              data: [85, 40, 75],
+              borderColor: theme.sage,
+              backgroundColor: theme.fillSage,
+            },
+            {
+              label: "私募/另类",
+              data: [80, 35, 25],
+              borderColor: theme.clay,
+              backgroundColor: "rgba(177,141,129,0.2)",
+            },
+          ],
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            title: { display: true, text: "收益-安全-流动性三元约束示意" },
+            legend: { position: "bottom" },
+          },
+          scales: {
+            r: {
+              suggestedMin: 0,
+              suggestedMax: 100,
+              ticks: { stepSize: 20, backdropColor: "transparent" },
+              pointLabels: { font: { size: isMobile ? 11 : 12 } },
+            },
+          },
+        },
+      });
+    }
+
+    function renderRiskMatrixChart() {
+      const canvas = document.getElementById("riskMatrixChart");
+      if (!canvas) return;
+
+      const riskPoints = [
+        { label: "行为风险", x: 8.5, y: 6.2, color: theme.rose },
+        { label: "市场风险", x: 7.2, y: 5.8, color: theme.slate },
+        { label: "流动性风险", x: 5.4, y: 8.2, color: theme.amber },
+        { label: "信用风险", x: 4.2, y: 7.6, color: theme.steel },
+        { label: "杠杆风险", x: 3.1, y: 9.3, color: theme.clay },
+      ];
+
+      destroyIfExists(canvas);
+      new Chart(canvas, {
+        type: "scatter",
+        data: {
+          datasets: riskPoints.map(point => ({
+            label: point.label,
+            data: [{ x: point.x, y: point.y }],
+            pointRadius: 6,
+            pointHoverRadius: 8,
+            borderColor: point.color,
+            backgroundColor: point.color,
+          })),
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            title: { display: true, text: "风险分布：发生频率 × 破坏性" },
+            tooltip: {
+              callbacks: {
+                label: context => {
+                  const item = context.raw || {};
+                  return `${context.dataset.label}：频率 ${item.x?.toFixed(1)} / 破坏性 ${item.y?.toFixed(1)}`;
+                },
+              },
+            },
+            legend: { position: "bottom" },
+          },
+          scales: {
+            x: {
+              min: 0,
+              max: 10,
+              title: { display: true, text: "发生频率（低 → 高）" },
+              ticks: { stepSize: 2 },
+            },
+            y: {
+              min: 0,
+              max: 10,
+              title: { display: true, text: "破坏性（低 → 高）" },
+              ticks: { stepSize: 2 },
+            },
+          },
+        },
+      });
+    }
+
+    function renderTimelineChart() {
+      const canvas = document.getElementById("timelineChart");
+      if (!canvas) return;
+
+      const labels = ["1-3秒", "4-5秒", "8-10秒"];
+      destroyIfExists(canvas);
+      new Chart(canvas, {
+        type: "bar",
+        data: {
+          labels,
+          datasets: [
+            {
+              label: "量化执行次数",
+              data: [2, 1, 1],
+              borderColor: theme.sage,
+              backgroundColor: theme.fillSage,
+              borderWidth: 1.2,
+            },
+            {
+              label: "人类执行次数",
+              data: [0, 0, 0],
+              borderColor: theme.clay,
+              backgroundColor: "rgba(177,141,129,0.2)",
+              borderWidth: 1.2,
+            },
+          ],
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            title: { display: true, text: "同一窗口内的执行能力差异（示意）" },
+            legend: { position: "bottom" },
+          },
+          scales: {
+            y: {
+              beginAtZero: true,
+              ticks: { stepSize: 1, precision: 0 },
+              title: { display: true, text: "执行次数" },
+            },
+            x: {
+              title: { display: true, text: "10秒内关键区间" },
+            },
+          },
+        },
+      });
+    }
+
+    function renderDecisionFlowChart() {
+      const canvas = document.getElementById("decisionFlowChart");
+      if (!canvas) return;
+
+      destroyIfExists(canvas);
+      new Chart(canvas, {
+        type: "bar",
+        data: {
+          labels: ["资金期限", "可承受回撤", "资产配置", "收益目标"],
+          datasets: [
+            {
+              label: "执行优先级（1最高）",
+              data: [1, 2, 3, 4],
+              borderColor: theme.steel,
+              backgroundColor: [
+                theme.fillSteel,
+                theme.fillSage,
+                theme.fillAmber,
+                theme.fillRose,
+              ],
+            },
+          ],
+        },
+        options: {
+          indexAxis: "y",
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            title: { display: true, text: "投资决策铁律：先后顺序不可倒置" },
+            legend: { display: false },
+            tooltip: {
+              callbacks: {
+                label: context => `优先级：${context.parsed.x}`,
+              },
+            },
+          },
+          scales: {
+            x: {
+              reverse: true,
+              min: 0,
+              max: 4.5,
+              ticks: { stepSize: 1 },
+              title: { display: true, text: "优先级（越靠左越先做）" },
+            },
+            y: {
+              ticks: { font: { size: isMobile ? 11 : 12 } },
+            },
+          },
+        },
+      });
+    }
+
+    function renderEcosystemChart() {
+      const canvas = document.getElementById("ecosystemChart");
+      if (!canvas) return;
+
+      destroyIfExists(canvas);
+      new Chart(canvas, {
+        type: "doughnut",
+        data: {
+          labels: ["散户", "券商", "公募", "私募", "做市商", "量化"],
+          datasets: [
+            {
+              data: [20, 16, 22, 14, 12, 16],
+              borderWidth: 1,
+              borderColor: "#ffffff",
+              backgroundColor: [
+                theme.slate,
+                theme.steel,
+                theme.sage,
+                theme.clay,
+                theme.amber,
+                theme.rose,
+              ],
+            },
+          ],
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            title: { display: true, text: "市场参与者生态结构（示意）" },
+            legend: { position: "bottom" },
+            tooltip: {
+              callbacks: {
+                label: context =>
+                  `${context.label}：系统权重 ${context.parsed}%`,
+              },
+            },
+          },
+        },
+      });
+    }
+
+    renderTriangleChart();
+    renderRiskMatrixChart();
+    renderTimelineChart();
+    renderDecisionFlowChart();
+    renderEcosystemChart();
+  })();
+</script>
