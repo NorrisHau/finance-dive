@@ -11,6 +11,99 @@ import IconArrowRight from "@/assets/icons/IconArrowRight.svg";
 
 const posts = await getCollection("blog");
 const sortedPosts = getSortedPosts(posts);
+
+type ThemeId = "investment" | "technology" | "health";
+
+type ThemeTopic = {
+  id: string;
+  title: string;
+  description: string;
+  href?: string;
+  coverImage?: string;
+};
+
+type ThemePanel = {
+  id: ThemeId;
+  title: string;
+  subtitle?: string;
+  countLabel?: string;
+  items: ThemeTopic[];
+};
+
+const investmentItems: ThemeTopic[] = sortedPosts.map(({ id, data, filePath }) => {
+  const explicitCover =
+    typeof data.ogImage === "string" ? data.ogImage : data.ogImage?.src;
+  const coverImage = getResolvedPostCover(id, explicitCover);
+  const description =
+    data.description.length > 96
+      ? `${data.description.slice(0, 96).trim()}...`
+      : data.description;
+
+  return {
+    id,
+    title: data.title,
+    description,
+    href: getPath(id, filePath),
+    coverImage,
+  };
+});
+
+const technologyItems: ThemeTopic[] = [
+  {
+    id: "technology-ai-workflow",
+    title: "AI 工具流：从输入到可复用产出",
+    description: "记录个人内容工作流：选题、素材池、提示词模板、复盘看板。",
+  },
+  {
+    id: "technology-knowledge-system",
+    title: "信息系统：如何构建低摩擦知识库",
+    description: "用标签、双链与检索习惯，让“收藏”真正变成“可调用”。",
+  },
+  {
+    id: "technology-career-growth",
+    title: "技术职业成长：从执行者到系统设计者",
+    description: "聚焦反馈循环、复利能力和跨学科协作的成长路径。",
+  },
+];
+
+const healthItems: ThemeTopic[] = [
+  {
+    id: "health-recovery-system",
+    title: "高压工作下的恢复系统",
+    description: "从睡眠、呼吸、微休息开始，建立可重复执行的恢复协议。",
+  },
+  {
+    id: "health-minimum-workout",
+    title: "运动最小行动集：忙碌也能持续",
+    description: "提供 15 分钟可完成的力量+心肺组合，主打低门槛和一致性。",
+  },
+  {
+    id: "health-energy-curve",
+    title: "饮食与注意力：稳定能量曲线",
+    description: "通过简单可执行的餐盘策略，减少午后疲惫和认知波动。",
+  },
+];
+
+const themePanels: ThemePanel[] = [
+  {
+    id: "investment",
+    title: "投资主题",
+    countLabel: `当前已上线章节：${investmentItems.length}`,
+    items: investmentItems,
+  },
+  {
+    id: "technology",
+    title: "科技主题",
+    subtitle: "先放 3 篇占位预告，后续逐步替换成正式内容。",
+    items: technologyItems,
+  },
+  {
+    id: "health",
+    title: "健康主题",
+    subtitle: "先放 3 篇占位预告，后续会上线完整章节。",
+    items: healthItems,
+  },
+];
 ---
 
 <Layout>
@@ -83,144 +176,131 @@ const sortedPosts = getSortedPosts(posts);
       </div>
     </section>
 
-    <section
-      id="theme-panel-investment"
-      class="theme-panel theme-panel--investment py-10"
-      role="tabpanel"
-      aria-labelledby="theme-tab-investment"
-    >
-      <div class="theme-surface theme-surface--investment">
-        <div class="mb-8 flex items-end justify-between gap-4">
-          <h2 class="text-2xl font-semibold tracking-wide">投资主题</h2>
-          <span class="text-sm text-foreground/60">当前已上线章节：{sortedPosts.length}</span>
-        </div>
-        <ul class="theme-topic-list">
-          {
-            sortedPosts.map(({ id, data, filePath }, index) => {
-              const explicitCover =
-                typeof data.ogImage === "string" ? data.ogImage : data.ogImage?.src;
-              const coverImage = getResolvedPostCover(id, explicitCover);
-              const previewText =
-                data.description.length > 96
-                  ? `${data.description.slice(0, 96).trim()}...`
-                  : data.description;
+    {
+      themePanels.map(panel => (
+        <section
+          id={`theme-panel-${panel.id}`}
+          class:list={[
+            "theme-panel py-10",
+            {
+              "hidden": panel.id !== "investment",
+              "theme-panel--investment": panel.id === "investment",
+            },
+          ]}
+          role="tabpanel"
+          aria-labelledby={`theme-tab-${panel.id}`}
+        >
+          <div
+            class:list={[
+              "theme-surface",
+              { "theme-surface--investment": panel.id === "investment" },
+            ]}
+          >
+            <div class="mb-8 flex flex-wrap items-end justify-between gap-3">
+              <h2 class="text-2xl font-semibold tracking-wide">{panel.title}</h2>
+              {panel.countLabel && <span class="text-sm text-foreground/60">{panel.countLabel}</span>}
+            </div>
 
-              return (
-                <li
-                  class="theme-topic-item theme-topic-item--investment"
-                  data-home-card
-                  hidden={index > 5 ? true : undefined}
-                >
-                  <a
-                    href={getPath(id, filePath)}
-                    class="theme-topic-link"
-                    style={`animation-delay: calc(${index} * 70ms);`}
-                  >
-                    <div class="theme-topic-copy">
-                      <h3 class="theme-topic-title theme-topic-title--compact text-foreground">
-                        {data.title}
-                      </h3>
-                      <p class="theme-topic-desc">{previewText}</p>
-                    </div>
-                    <div class="theme-topic-thumb" aria-hidden="true">
-                      {
-                        coverImage ? (
-                          <img src={coverImage} alt="" loading="lazy" decoding="async" />
-                        ) : (
-                          <svg viewBox="0 0 320 220" role="img" aria-label="文章默认配图">
-                            <defs>
-                              <linearGradient id={`home-thumbBg-${index}`} x1="0" y1="0" x2="1" y2="1">
-                                <stop offset="0%" stop-color="#f7f2e7"></stop>
-                                <stop offset="100%" stop-color="#ece2ce"></stop>
-                              </linearGradient>
-                            </defs>
-                            <rect width="320" height="220" rx="18" fill={`url(#home-thumbBg-${index})`} />
-                            <path d="M46 44v132M46 176h228" stroke="#b79e76" stroke-width="2" />
-                            <path
-                              d="M74 148 106 132 132 138 164 108 198 116 234 84 266 98"
-                              fill="none"
-                              stroke="#7f6540"
-                              stroke-width="4"
-                              stroke-linecap="round"
-                              stroke-linejoin="round"
-                            />
-                          </svg>
-                        )
-                      }
-                    </div>
-                  </a>
-                </li>
-              );
-            })
-          }
-        </ul>
-        <div id="home-posts-sentinel" class="h-4" aria-hidden="true"></div>
-      </div>
-    </section>
+            {panel.subtitle && <p class="theme-panel-subtitle">{panel.subtitle}</p>}
 
-    <section
-      id="theme-panel-technology"
-      class="theme-panel hidden py-10"
-      role="tabpanel"
-      aria-labelledby="theme-tab-technology"
-    >
-      <div class="theme-surface">
-        <h2 class="text-2xl font-semibold tracking-wide">科技主题</h2>
-        <p class="mt-3 text-foreground/70">先放 3 篇占位预告，后续逐步替换成正式内容。</p>
-        <ul class="theme-topic-list mt-4 text-sm text-foreground/80">
-          <li class="theme-topic-item">
-            <h3 class="text-base font-semibold">AI 工具流：从输入到可复用产出</h3>
-            <p class="mt-1 text-foreground/65">
-              记录个人内容工作流：选题、素材池、提示词模板、复盘看板。
-            </p>
-          </li>
-          <li class="theme-topic-item">
-            <h3 class="text-base font-semibold">信息系统：如何构建低摩擦知识库</h3>
-            <p class="mt-1 text-foreground/65">
-              用标签、双链与检索习惯，让“收藏”真正变成“可调用”。
-            </p>
-          </li>
-          <li class="theme-topic-item">
-            <h3 class="text-base font-semibold">技术职业成长：从执行者到系统设计者</h3>
-            <p class="mt-1 text-foreground/65">
-              聚焦反馈循环、复利能力和跨学科协作的成长路径。
-            </p>
-          </li>
-        </ul>
-      </div>
-    </section>
+            <ul class="theme-topic-list">
+              {
+                panel.items.map((item, index) => {
+                  const gradientId = `${panel.id}-thumbBg-${index}`;
+                  const isInvestment = panel.id === "investment";
+                  const fallbackStopA = isInvestment ? "#f7f2e7" : "#eef1f5";
+                  const fallbackStopB = isInvestment ? "#ece2ce" : "#dbe4ee";
+                  const fallbackStrokeA = isInvestment ? "#b79e76" : "#8da1ba";
+                  const fallbackStrokeB = isInvestment ? "#7f6540" : "#607d9d";
 
-    <section
-      id="theme-panel-health"
-      class="theme-panel hidden py-10"
-      role="tabpanel"
-      aria-labelledby="theme-tab-health"
-    >
-      <div class="theme-surface">
-        <h2 class="text-2xl font-semibold tracking-wide">健康主题</h2>
-        <p class="mt-3 text-foreground/70">先放 3 篇占位预告，后续会上线完整章节。</p>
-        <ul class="theme-topic-list mt-4 text-sm text-foreground/80">
-          <li class="theme-topic-item">
-            <h3 class="text-base font-semibold">高压工作下的恢复系统</h3>
-            <p class="mt-1 text-foreground/65">
-              从睡眠、呼吸、微休息开始，建立可重复执行的恢复协议。
-            </p>
-          </li>
-          <li class="theme-topic-item">
-            <h3 class="text-base font-semibold">运动最小行动集：忙碌也能持续</h3>
-            <p class="mt-1 text-foreground/65">
-              提供 15 分钟可完成的力量+心肺组合，主打低门槛和一致性。
-            </p>
-          </li>
-          <li class="theme-topic-item">
-            <h3 class="text-base font-semibold">饮食与注意力：稳定能量曲线</h3>
-            <p class="mt-1 text-foreground/65">
-              通过简单可执行的餐盘策略，减少午后疲惫和认知波动。
-            </p>
-          </li>
-        </ul>
-      </div>
-    </section>
+                  const itemClasses = [
+                    "theme-topic-link",
+                    { "theme-topic-link--static": !item.href },
+                  ];
+
+                  return (
+                    <li
+                      class="theme-topic-item"
+                      data-home-card={isInvestment ? "true" : undefined}
+                      hidden={isInvestment && index > 5 ? true : undefined}
+                    >
+                      {item.href ? (
+                        <a
+                          href={item.href}
+                          class:list={itemClasses}
+                          style={`animation-delay: calc(${index} * 70ms);`}
+                        >
+                          <div class="theme-topic-copy">
+                            <h3 class="theme-topic-title theme-topic-title--compact text-foreground">
+                              {item.title}
+                            </h3>
+                            <p class="theme-topic-desc">{item.description}</p>
+                          </div>
+                          <div class="theme-topic-thumb" aria-hidden="true">
+                            {item.coverImage ? (
+                              <img src={item.coverImage} alt="" loading="lazy" decoding="async" />
+                            ) : (
+                              <svg viewBox="0 0 320 220" role="img" aria-label="文章默认配图">
+                                <defs>
+                                  <linearGradient id={gradientId} x1="0" y1="0" x2="1" y2="1">
+                                    <stop offset="0%" stop-color={fallbackStopA}></stop>
+                                    <stop offset="100%" stop-color={fallbackStopB}></stop>
+                                  </linearGradient>
+                                </defs>
+                                <rect width="320" height="220" rx="18" fill={`url(#${gradientId})`} />
+                                <path d="M46 44v132M46 176h228" stroke={fallbackStrokeA} stroke-width="2" />
+                                <path
+                                  d="M74 148 106 132 132 138 164 108 198 116 234 84 266 98"
+                                  fill="none"
+                                  stroke={fallbackStrokeB}
+                                  stroke-width="4"
+                                  stroke-linecap="round"
+                                  stroke-linejoin="round"
+                                />
+                              </svg>
+                            )}
+                          </div>
+                        </a>
+                      ) : (
+                        <div class:list={itemClasses}>
+                          <div class="theme-topic-copy">
+                            <h3 class="theme-topic-title theme-topic-title--compact text-foreground">
+                              {item.title}
+                            </h3>
+                            <p class="theme-topic-desc">{item.description}</p>
+                          </div>
+                          <div class="theme-topic-thumb" aria-hidden="true">
+                            <svg viewBox="0 0 320 220" role="img" aria-label="文章默认配图">
+                              <defs>
+                                <linearGradient id={gradientId} x1="0" y1="0" x2="1" y2="1">
+                                  <stop offset="0%" stop-color={fallbackStopA}></stop>
+                                  <stop offset="100%" stop-color={fallbackStopB}></stop>
+                                </linearGradient>
+                              </defs>
+                              <rect width="320" height="220" rx="18" fill={`url(#${gradientId})`} />
+                              <path d="M46 44v132M46 176h228" stroke={fallbackStrokeA} stroke-width="2" />
+                              <path
+                                d="M74 148 106 132 132 138 164 108 198 116 234 84 266 98"
+                                fill="none"
+                                stroke={fallbackStrokeB}
+                                stroke-width="4"
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                              />
+                            </svg>
+                          </div>
+                        </div>
+                      )}
+                    </li>
+                  );
+                })
+              }
+            </ul>
+            {panel.id === "investment" && <div id="home-posts-sentinel" class="h-4" aria-hidden="true"></div>}
+          </div>
+        </section>
+      ))
+    }
 
     <div class="my-8 text-center">
       <LinkButton href="/posts/">
@@ -263,6 +343,9 @@ const sortedPosts = getSortedPosts(posts);
     tabs.forEach(tab => {
       tab.addEventListener("click", () => activate(tab.getAttribute("data-theme")));
     });
+
+    const queryTheme = new URLSearchParams(window.location.search).get("theme");
+    activate(queryTheme ?? "investment");
 
     const cards = Array.from(document.querySelectorAll("[data-home-card]"));
     const sentinel = document.querySelector("#home-posts-sentinel");
@@ -307,6 +390,4 @@ const sortedPosts = getSortedPosts(posts);
   document.addEventListener("astro:page-load", initIndexPageInteractions);
   document.addEventListener("DOMContentLoaded", initIndexPageInteractions);
 </script>
-
-
 

@@ -218,13 +218,18 @@ html[data-theme="dark"] {
     background: color-mix(in srgb, #c9dfc4 34%, transparent);
   }
   .theme-surface {
-    @apply rounded-2xl border border-border bg-background p-6;
+    @apply rounded-2xl bg-background p-6;
+    border: 1px solid color-mix(in srgb, var(--color-border) 72%, transparent);
   }
 
   .theme-surface--investment {
-    border: none;
-    background: color-mix(in srgb, var(--color-card-bg) 96%, white 4%);
-    box-shadow: 0 14px 42px rgba(52, 73, 94, 0.08);
+    background: color-mix(in srgb, var(--color-card-bg) 98%, transparent);
+    border-color: transparent;
+    box-shadow: var(--shadow-soft);
+  }
+
+  .theme-panel-subtitle {
+    @apply mb-4 text-sm text-foreground/70;
   }
 
   .theme-topic-list {
@@ -232,11 +237,38 @@ html[data-theme="dark"] {
   }
 
   .theme-topic-item {
-    @apply rounded-xl border border-border bg-card-bg/80 p-4;
+    @apply rounded-xl border border-border/60 bg-card-bg/80 p-4;
   }
 
   .theme-topic-link {
     @apply grid items-stretch gap-3 no-underline sm:grid-cols-[minmax(0,1fr)_138px] sm:gap-4;
+    transition: transform 220ms ease, background-color 220ms ease;
+    border-radius: 0.9rem;
+    padding: 0.3rem;
+  }
+
+  .theme-topic-link:hover {
+    transform: translateY(-1px) scale(1.005);
+    background: color-mix(in srgb, var(--color-card-bg) 75%, transparent);
+  }
+
+  .theme-topic-link:hover .theme-topic-title {
+    color: var(--color-accent);
+    background-size: 100% 2px;
+  }
+
+  .theme-topic-link--static {
+    cursor: default;
+  }
+
+  .theme-topic-link--static:hover {
+    transform: none;
+    background: transparent;
+  }
+
+  .theme-topic-link--static:hover .theme-topic-title {
+    color: inherit;
+    background-size: 0% 2px;
   }
 
   .theme-topic-copy {
@@ -268,7 +300,9 @@ html[data-theme="dark"] {
   .theme-topic-thumb img,
   .theme-topic-thumb svg {
     @apply h-full w-full object-cover;
-  }.bento-card {
+  }
+
+  .bento-card {
     @apply relative grid items-stretch gap-3 overflow-hidden rounded-xl p-3.5 transition duration-200 ease-out sm:gap-4 sm:p-4;
     grid-template-columns: minmax(0, 1fr);
     border: none;
@@ -344,28 +378,7 @@ html[data-theme="dark"] {
     color: var(--color-accent);
     background-size: 100% 1px;
   }
-  .theme-panel--investment .theme-topic-item {
-    border: none;
-    background: transparent;
-    padding: 0.85rem 0.95rem;
-    animation: card-enter 360ms ease-out both;
-  }
-
-  .theme-panel--investment .theme-topic-link {
-    transition: transform 220ms ease, background-color 220ms ease;
-    border-radius: 0.9rem;
-    padding: 0.4rem;
-  }
-
-  .theme-panel--investment .theme-topic-link:hover {
-    transform: scale(1.01);
-    background: color-mix(in srgb, var(--color-card-bg) 75%, transparent);
-  }
-
-  .theme-panel--investment .theme-topic-link:hover .theme-topic-title {
-    color: var(--color-accent);
-    background-size: 100% 2px;
-  }.bento-card__meta {
+  .bento-card__meta {
     @apply mt-3 flex flex-wrap items-center gap-2.5;
     font-family:
       "JetBrains Mono", "IBM Plex Mono", "SFMono-Regular", ui-monospace,
@@ -894,6 +907,4 @@ html[data-theme="dark"] {
 .app-header * {
   view-transition-name: none !important;
 }
-
-
 
